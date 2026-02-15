@@ -1,620 +1,381 @@
-# Beauty Noodle Shop - Backend Documentation
+# 🚀 คู่มือการ Deploy Beauty Noodle Shop ไปยัง GitHub Pages
 
 ## 📋 สารบัญ
-1. [ภาพรวมระบบ](#ภาพรวมระบบ)
-2. [การติดตั้ง](#การติดตั้ง)
-3. [โครงสร้างฐานข้อมูล](#โครงสร้างฐานข้อมูล)
-4. [API Endpoints](#api-endpoints)
-5. [การใช้งาน](#การใช้งาน)
-6. [Security Best Practices](#security-best-practices)
+1. [การเตรียมตัว](#การเตรียมตัว)
+2. [การตั้งค่า Backend URL](#การตั้งค่า-backend-url)
+3. [การ Deploy ไปยัง GitHub Pages](#การ-deploy-ไปยัง-github-pages)
+4. [การทดสอบระบบ](#การทดสอบระบบ)
+5. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🎯 ภาพรวมระบบ
+## 🎯 การเตรียมตัว
 
-ระบบ Backend สำหรับร้านก่วยเตี๋ยว "Beauty Noodle Shop" ที่พัฒนาด้วย Google Apps Script และ Google Sheets เป็นฐานข้อมูล
-
-### คุณสมบัติหลัก
-- ✅ การจัดการเมนูอาหาร
-- ✅ ระบบรับออเดอร์พร้อมคำนวณราคาอัตโนมัติ
-- ✅ ติดตามสถานะออเดอร์แบบ Real-time
-- ✅ ป้องกันการเขียนข้อมูลทับกันด้วย LockService
-- ✅ บันทึก Log การทำงานทั้งหมด
-- ✅ API แบบ RESTful (GET/POST)
+### สิ่งที่ต้องมี:
+- ✅ บัญชี GitHub (สมัครฟรีที่ https://github.com)
+- ✅ Google Apps Script Web App URL ที่ได้จากการ Deploy Backend
+- ✅ ไฟล์ `index.html` จากโปรเจคนี้
 
 ---
 
-## 🚀 การติดตั้ง
+## ⚙️ การตั้งค่า Backend URL
 
-### ขั้นตอนที่ 1: สร้าง Google Spreadsheet
-1. เปิด [Google Sheets](https://sheets.google.com)
-2. สร้าง Spreadsheet ใหม่ และตั้งชื่อว่า "Beauty Noodle Shop"
+### ขั้นตอนที่ 1: เปิดไฟล์ index.html
+เปิดไฟล์ `index.html` ด้วย Text Editor (เช่น VS Code, Notepad++, Sublime Text)
 
-### ขั้นตอนที่ 2: เปิด Apps Script Editor
-1. ใน Google Sheets ไปที่ **Extensions > Apps Script**
-2. ลบโค้ดเริ่มต้นทั้งหมด
-3. วางโค้ดจากไฟล์ `Code.gs` ทั้งหมด
-4. บันทึก (กด Ctrl+S หรือ Cmd+S)
+### ขั้นตอนที่ 2: แก้ไข SCRIPT_URL
+ค้นหาบรรทัดนี้ (อยู่ประมาณบรรทัดที่ 400+):
 
-### ขั้นตอนที่ 3: รันฟังก์ชันตั้งค่าเริ่มต้น
-1. ในเมนู Apps Script เลือกฟังก์ชัน `initialSetup`
-2. กดปุ่ม Run (▶️)
-3. อนุญาตการเข้าถึง (Authorization) ครั้งแรก
-4. รอจนกว่าจะเสร็จสิ้น
-
-### ขั้นตอนที่ 4: สร้างฐานข้อมูล
-1. เลือกฟังก์ชัน `setupDatabase`
-2. กดปุ่ม Run (▶️)
-3. ระบบจะสร้างชีต 4 ชีต:
-   - **Config** - การตั้งค่าร้านค้า
-   - **Menu** - รายการเมนู
-   - **Orders** - ออเดอร์ทั้งหมด
-   - **Logs** - บันทึกการทำงาน
-
-### ขั้นตอนที่ 5: Deploy เป็น Web App
-1. ไปที่ **Deploy > New deployment**
-2. เลือก Type: **Web app**
-3. ตั้งค่า:
-   - **Execute as**: Me
-   - **Who has access**: Anyone
-4. กด **Deploy**
-5. คัดลอก **Web app URL** (ใช้เป็น API endpoint)
-
----
-
-## 📊 โครงสร้างฐานข้อมูล
-
-### ชีต: Config
-เก็บการตั้งค่าร้านค้า
-
-| key | value |
-|-----|-------|
-| shopName | Beauty Noodle Shop |
-| isOpen | true |
-| liffId | (ว่างเปล่า) |
-| taxRate | 0.07 |
-| serviceCharge | 0 |
-| currency | THB |
-
-### ชีต: Menu
-เก็บรายการเมนูอาหาร
-
-| id | name | category | price | options_json | status |
-|----|------|----------|-------|--------------|--------|
-| M001 | ก่วยเตี๋ยวหมูน้ำใส | ก่วยเตี๋ยว | 45 | [JSON] | active |
-| M002 | ก่วยเตี๋ยวหมูน้ำตก | ก่วยเตี๋ยว | 50 | [JSON] | active |
-
-**options_json format:**
-```json
-[
-  {
-    "type": "noodle",
-    "name": "เส้น",
-    "choices": ["เส้นเล็ก", "เส้นใหญ่", "เส้นหมี่", "วุ้นเส้น"]
-  },
-  {
-    "type": "addon",
-    "name": "เพิ่มเติม",
-    "choices": ["เนื้อพิเศษ +20", "ไข่ต้ม +10"]
-  }
-]
-```
-
-### ชีต: Orders
-เก็บออเดอร์ทั้งหมด
-
-| orderId | userId | items_json | totalPrice | type | payment | status | timestamp |
-|---------|--------|------------|------------|------|---------|--------|-----------|
-| ORD1708... | U123... | [JSON] | 120 | dine-in | cash | completed | 2024-02-15... |
-
-**items_json format:**
-```json
-[
-  {
-    "menuId": "M001",
-    "quantity": 2,
-    "selectedOptions": ["เส้นเล็ก", "เนื้อพิเศษ +20"]
-  },
-  {
-    "menuId": "M004",
-    "quantity": 1,
-    "selectedOptions": []
-  }
-]
-```
-
-**Order Status:**
-- `pending` - รอยืนยัน
-- `confirmed` - ยืนยันแล้ว
-- `preparing` - กำลังทำ
-- `ready` - พร้อมเสิร์ฟ
-- `completed` - เสร็จสิ้น
-- `cancelled` - ยกเลิก
-
-### ชีต: Logs
-บันทึกการทำงานทั้งหมด
-
-| timestamp | userId | action | details |
-|-----------|--------|--------|---------|
-| 2024-02-15 10:30:00 | U123... | CREATE_ORDER | Order ORD... created |
-
----
-
-## 🔌 API Endpoints
-
-### Base URL
-```
-https://script.google.com/macros/s/{YOUR_DEPLOYMENT_ID}/exec
-```
-
----
-
-## GET APIs
-
-### 1. ดึงรายการเมนู
-**Endpoint:** `GET /?action=getMenu`
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Menu retrieved successfully",
-  "data": {
-    "menu": [
-      {
-        "id": "M001",
-        "name": "ก่วยเตี๋ยวหมูน้ำใส",
-        "category": "ก่วยเตี๋ยว",
-        "price": 45,
-        "options": [...],
-        "status": "active"
-      }
-    ]
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
-
-**ตัวอย่างการเรียกใช้:**
 ```javascript
-fetch('YOUR_WEB_APP_URL?action=getMenu')
-  .then(res => res.json())
-  .then(data => console.log(data));
+const SCRIPT_URL = 'YOUR_GAS_WEB_APP_URL';
+```
+
+แทนที่ `YOUR_GAS_WEB_APP_URL` ด้วย URL ที่คุณได้จาก Google Apps Script:
+
+```javascript
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxx.../exec';
+```
+
+### ⚠️ ตัวอย่าง URL ที่ถูกต้อง:
+```
+https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec
+```
+
+**หมายเหตุ:** URL จะต้องลงท้ายด้วย `/exec`
+
+### ขั้นตอนที่ 3: บันทึกไฟล์
+กด `Ctrl + S` (หรือ `Cmd + S` บน Mac) เพื่อบันทึกการแก้ไข
+
+---
+
+## 🌐 การ Deploy ไปยัง GitHub Pages
+
+### วิธีที่ 1: ใช้ GitHub Web Interface (แนะนำสำหรับมือใหม่)
+
+#### 1. สร้าง Repository ใหม่
+1. เข้าไปที่ https://github.com และ Login
+2. คลิก **+** มุมบนขวา → **New repository**
+3. ตั้งชื่อ Repository เช่น `beauty-noodle-shop`
+4. เลือก **Public**
+5. ✅ เช็ค **Add a README file**
+6. คลิก **Create repository**
+
+#### 2. อัพโหลดไฟล์ index.html
+1. ใน Repository ที่สร้างใหม่ คลิก **Add file** → **Upload files**
+2. ลากไฟล์ `index.html` มาวาง หรือคลิก **choose your files**
+3. เลือกไฟล์ `index.html` ที่แก้ไข URL แล้ว
+4. พิมพ์ commit message: `Initial commit`
+5. คลิก **Commit changes**
+
+#### 3. เปิดใช้งาน GitHub Pages
+1. ไปที่ **Settings** (แท็บบนสุด)
+2. เลื่อนลงหา **Pages** ในเมนูด้านซ้าย
+3. ส่วน **Source** เลือก:
+   - Branch: `main` (หรือ `master`)
+   - Folder: `/ (root)`
+4. คลิก **Save**
+5. รอสักครู่ จะมีข้อความแสดง URL ของเว็บไซต์:
+   ```
+   Your site is published at https://USERNAME.github.io/beauty-noodle-shop/
+   ```
+
+#### 4. เข้าถึงเว็บไซต์
+คลิกที่ URL ที่แสดงขึ้นมา หรือไปที่:
+```
+https://YOUR_GITHUB_USERNAME.github.io/REPOSITORY_NAME/
+```
+
+ตัวอย่าง:
+```
+https://john-doe.github.io/beauty-noodle-shop/
 ```
 
 ---
 
-### 2. ตรวจสอบสถานะร้านค้า
-**Endpoint:** `GET /?action=getShopStatus`
+### วิธีที่ 2: ใช้ Git Command Line (สำหรับผู้มีประสบการณ์)
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Shop status retrieved",
-  "data": {
-    "shopName": "Beauty Noodle Shop",
-    "isOpen": true,
-    "liffId": "",
-    "currency": "THB"
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
+```bash
+# 1. สร้าง repository ใหม่บน GitHub ก่อน
 
----
+# 2. Clone repository
+git clone https://github.com/YOUR_USERNAME/beauty-noodle-shop.git
+cd beauty-noodle-shop
 
-### 3. ดึงข้อมูลออเดอร์
-**Endpoint:** `GET /?action=getOrder&orderId={ORDER_ID}`
+# 3. คัดลอกไฟล์ index.html เข้าไปในโฟลเดอร์
+cp /path/to/index.html .
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Order found",
-  "data": {
-    "order": {
-      "orderId": "ORD1708012345678900",
-      "userId": "U1234567890",
-      "items": [...],
-      "totalPrice": 120,
-      "type": "dine-in",
-      "payment": "cash",
-      "status": "pending",
-      "timestamp": "2024-02-15T10:30:00.000Z"
-    }
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
+# 4. Commit และ Push
+git add index.html
+git commit -m "Initial commit: Add Beauty Noodle Shop SPA"
+git push origin main
 
----
-
-## POST APIs
-
-### 1. สร้างออเดอร์ใหม่
-**Endpoint:** `POST /`
-
-**Headers:**
-```
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "action": "saveOrder",
-  "userId": "U1234567890",
-  "items": [
-    {
-      "menuId": "M001",
-      "quantity": 2,
-      "selectedOptions": ["เส้นเล็ก", "เนื้อพิเศษ +20"]
-    },
-    {
-      "menuId": "M004",
-      "quantity": 1,
-      "selectedOptions": []
-    }
-  ],
-  "type": "dine-in",
-  "payment": "cash"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Order saved successfully",
-  "data": {
-    "orderId": "ORD1708012345678900",
-    "totalPrice": 120,
-    "status": "pending"
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
-
-**ตัวอย่างการเรียกใช้:**
-```javascript
-const orderData = {
-  action: 'saveOrder',
-  userId: 'U1234567890',
-  items: [
-    { menuId: 'M001', quantity: 2, selectedOptions: ['เส้นเล็ก', 'เนื้อพิเศษ +20'] },
-    { menuId: 'M004', quantity: 1, selectedOptions: [] }
-  ],
-  type: 'dine-in',
-  payment: 'cash'
-};
-
-fetch('YOUR_WEB_APP_URL', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(orderData)
-})
-  .then(res => res.json())
-  .then(data => console.log(data));
-```
-
----
-
-### 2. อัพเดทสถานะออเดอร์
-**Endpoint:** `POST /`
-
-**Request Body:**
-```json
-{
-  "action": "updateStatus",
-  "orderId": "ORD1708012345678900",
-  "status": "completed",
-  "userId": "ADMIN"
-}
-```
-
-**Valid Status:**
-- pending
-- confirmed
-- preparing
-- ready
-- completed
-- cancelled
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Order status updated",
-  "data": {
-    "orderId": "ORD1708012345678900",
-    "newStatus": "completed"
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
-
----
-
-### 3. อัพเดทการตั้งค่า (Admin only)
-**Endpoint:** `POST /`
-
-**Request Body:**
-```json
-{
-  "action": "updateConfig",
-  "key": "isOpen",
-  "value": "false",
-  "adminToken": "YOUR_ADMIN_SECRET"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Config updated",
-  "data": {
-    "key": "isOpen",
-    "value": "false"
-  },
-  "timestamp": "2024-02-15T10:30:00.000Z"
-}
-```
-
----
-
-## 💻 การใช้งาน
-
-### Example 1: แสดงรายการเมนูในหน้าเว็บ
-```javascript
-// Fetch menu และแสดงผล
-async function loadMenu() {
-  const response = await fetch('YOUR_WEB_APP_URL?action=getMenu');
-  const result = await response.json();
-  
-  if (result.success) {
-    const menu = result.data.menu;
-    
-    menu.forEach(item => {
-      console.log(`${item.name} - ${item.price} บาท`);
-    });
-  }
-}
-
-loadMenu();
-```
-
-### Example 2: สร้างออเดอร์จาก LINE LIFF
-```javascript
-// สมมติว่าได้ userId จาก LINE LIFF
-async function createOrder(userId, cart) {
-  const orderPayload = {
-    action: 'saveOrder',
-    userId: userId,
-    items: cart.map(item => ({
-      menuId: item.id,
-      quantity: item.quantity,
-      selectedOptions: item.options
-    })),
-    type: 'dine-in',
-    payment: 'cash'
-  };
-  
-  const response = await fetch('YOUR_WEB_APP_URL', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(orderPayload)
-  });
-  
-  const result = await response.json();
-  
-  if (result.success) {
-    alert(`สั่งซื้อสำเร็จ! หมายเลขออเดอร์: ${result.data.orderId}`);
-    alert(`ยอดชำระ: ${result.data.totalPrice} บาท`);
-  }
-}
-```
-
-### Example 3: อัพเดทสถานะออเดอร์ (ฝั่ง Admin)
-```javascript
-async function updateOrderStatus(orderId, newStatus) {
-  const payload = {
-    action: 'updateStatus',
-    orderId: orderId,
-    status: newStatus,
-    userId: 'ADMIN'
-  };
-  
-  const response = await fetch('YOUR_WEB_APP_URL', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  
-  const result = await response.json();
-  
-  if (result.success) {
-    console.log(`อัพเดทสถานะเป็น ${newStatus} สำเร็จ`);
-  }
-}
-
-// เรียกใช้
-updateOrderStatus('ORD1708012345678900', 'ready');
-```
-
----
-
-## 🔐 Security Best Practices
-
-### 1. การเก็บข้อมูลลับ
-```javascript
-// ✅ ถูกต้อง - ใช้ Script Properties
-PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', id);
-
-// ❌ ผิด - Hard-code
-const SPREADSHEET_ID = '1234567890abcdef'; // อย่าทำแบบนี้!
-```
-
-### 2. การใช้ LockService
-```javascript
-const lock = LockService.getScriptLock();
-try {
-  lock.waitLock(30000); // รอ lock สูงสุด 30 วินาที
-  // ทำงานที่ต้องการ
-} finally {
-  lock.releaseLock(); // ปลดล็อคเสมอ
-}
-```
-
-### 3. Admin Token (แนะนำเพิ่ม)
-```javascript
-// เพิ่ม admin token ใน Script Properties
-PropertiesService.getScriptProperties().setProperty('ADMIN_TOKEN', 'your-secret-token');
-
-// ตรวจสอบใน updateConfigAPI
-function updateConfigAPI(payload) {
-  const storedToken = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
-  
-  if (payload.adminToken !== storedToken) {
-    return createResponse(false, 'Unauthorized', null, 401);
-  }
-  
-  // ดำเนินการต่อ...
-}
-```
-
-### 4. Rate Limiting (แนะนำเพิ่ม)
-```javascript
-// ตรวจสอบจำนวนครั้งที่เรียก API ต่อ user
-function checkRateLimit(userId) {
-  const cache = CacheService.getScriptCache();
-  const key = `rate_${userId}`;
-  const count = cache.get(key) || 0;
-  
-  if (count > 100) { // จำกัด 100 requests ต่อชั่วโมง
-    return false;
-  }
-  
-  cache.put(key, parseInt(count) + 1, 3600); // เก็บ 1 ชั่วโมง
-  return true;
-}
+# 5. เปิดใช้งาน GitHub Pages ผ่าน Web Interface (ตามขั้นตอนด้านบน)
 ```
 
 ---
 
 ## 🧪 การทดสอบระบบ
 
-### ใช้ฟังก์ชัน testSystem()
+### 1. ทดสอบในเครื่อง (Local Testing)
+ก่อน Deploy สามารถทดสอบโดยการเปิดไฟล์ `index.html` ด้วย Browser โดยตรง:
+
+1. คลิกขวาที่ไฟล์ `index.html`
+2. เลือก **Open with** → เลือก Browser (Chrome, Firefox, Edge)
+3. ทดสอบการทำงาน:
+   - ✅ เมนูแสดงขึ้นหรือไม่?
+   - ✅ เพิ่มสินค้าลงตะกร้าได้หรือไม่?
+   - ✅ สามารถสั่งซื้อและได้เลขออเดอร์กลับมาหรือไม่?
+
+### 2. ทดสอบบน GitHub Pages
+หลัง Deploy แล้ว:
+
+1. เปิด URL ที่ได้จาก GitHub Pages
+2. เปิด Developer Console (กด F12)
+3. ตรวจสอบ Console แท็บ เพื่อดู Error (ถ้ามี)
+4. ทดสอบบนมือถือ:
+   - เปิด URL ด้วยมือถือ
+   - ทดสอบ Touch interactions
+   - ตรวจสอบ Responsive design
+
+### 3. ตรวจสอบ API Connection
+หากเมนูไม่แสดง ให้ตรวจสอบ:
+
 ```javascript
-// ใน Apps Script Editor
-// เลือกฟังก์ชัน testSystem และกด Run
+// เปิด Console (F12) แล้วพิมพ์:
+console.log(SCRIPT_URL);
 
-function testSystem() {
-  // ทดสอบทั้งหมด:
-  // 1. Setup database
-  // 2. Get menu
-  // 3. Save order
-  // 4. Update status
-}
-```
-
-### ตรวจสอบ Logs
-ดู execution logs ใน Apps Script:
-1. ไปที่ **Executions** (ไอคอนนาฬิกา)
-2. คลิกที่ execution ที่ต้องการดู
-3. ดู log output
-
----
-
-## 📈 การขยายระบบ
-
-### เพิ่มฟีเจอร์ Reporting
-```javascript
-function getOrderReport(startDate, endDate) {
-  const ss = getSpreadsheet();
-  const sheet = ss.getSheetByName('Orders');
-  const data = sheet.getDataRange().getValues();
-  
-  let totalRevenue = 0;
-  let orderCount = 0;
-  
-  for (let i = 1; i < data.length; i++) {
-    const orderDate = new Date(data[i][7]); // timestamp column
-    
-    if (orderDate >= startDate && orderDate <= endDate) {
-      totalRevenue += data[i][3]; // totalPrice column
-      orderCount++;
-    }
-  }
-  
-  return {
-    totalRevenue: totalRevenue,
-    orderCount: orderCount,
-    averageOrderValue: totalRevenue / orderCount
-  };
-}
-```
-
-### เพิ่ม Webhook สำหรับ LINE Notify
-```javascript
-function notifyLineWhenOrderReceived(orderId, totalPrice) {
-  const lineToken = PropertiesService.getScriptProperties().getProperty('LINE_NOTIFY_TOKEN');
-  
-  const message = `🔔 ออเดอร์ใหม่!\nหมายเลข: ${orderId}\nยอดชำระ: ${totalPrice} บาท`;
-  
-  UrlFetchApp.fetch('https://notify-api.line.me/api/notify', {
-    method: 'post',
-    headers: {
-      'Authorization': 'Bearer ' + lineToken
-    },
-    payload: {
-      'message': message
-    }
-  });
-}
-
-// เรียกใช้หลังจาก save order สำเร็จ
+// ควรแสดง URL ที่ถูกต้อง เช่น:
+// "https://script.google.com/macros/s/AKfycbxxx.../exec"
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### ปัญหา: "Spreadsheet ID not found"
-**วิธีแก้:**
-1. รันฟังก์ชัน `initialSetup()` ก่อน
-2. ตรวจสอบว่า Script Properties มี SPREADSHEET_ID หรือไม่
+### ปัญหา 1: หน้าเว็บว่างเปล่า / ไม่มีเมนู
 
-### ปัญหา: "Authorization required"
-**วิธีแก้:**
-1. รันฟังก์ชันใดก็ได้ใน Apps Script Editor
-2. คลิก "Review Permissions"
-3. เลือกบัญชี Google
-4. คลิก "Allow"
+**สาเหตุที่เป็นไปได้:**
+- ❌ SCRIPT_URL ยังไม่ได้แก้ไข หรือแก้ไขผิด
+- ❌ Backend (Google Apps Script) ยังไม่ได้ Deploy
+- ❌ CORS Policy ของ Browser
 
-### ปัญหา: API ตอบช้า
 **วิธีแก้:**
-1. ตรวจสอบจำนวนแถวใน Sheet (ควรน้อยกว่า 10,000 แถว)
-2. ใช้ `getDataRange()` แทน `getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn())`
-3. พิจารณาใช้ Cache สำหรับข้อมูลที่ไม่เปลี่ยนบ่อย
+
+1. เปิด Browser Console (F12) → ดูที่ Console tab
+2. หาข้อความ Error สีแดง
+3. ถ้าเจอ Error แบบนี้:
+   ```
+   Failed to fetch
+   TypeError: Failed to fetch
+   ```
+   แสดงว่า SCRIPT_URL ผิด หรือ Backend ไม่ได้ Deploy
+
+4. ถ้าเจอ CORS Error:
+   ```
+   Access to fetch at '...' from origin '...' has been blocked by CORS policy
+   ```
+   แสดงว่า Google Apps Script ยังไม่ได้ตั้งค่าให้ Access แบบ Public
+
+**แก้ไข CORS:**
+- ไปที่ Google Apps Script
+- Deploy → New deployment
+- ตั้งค่า **Who has access** = **Anyone**
 
 ---
 
-## 📞 ติดต่อ & สนับสนุน
+### ปัญหา 2: สั่งซื้อแล้วไม่ได้เลขออเดอร์
 
-หากมีปัญหาหรือต้องการเพิ่มฟีเจอร์ ติดต่อได้ที่:
-- Email: support@beautynoodleshop.com
-- LINE Official: @beautynoodle
+**สาเหตุ:**
+- Backend Function `saveOrder` มีปัญหา
+- Payload ที่ส่งไปไม่ถูกต้อง
+
+**วิธีแก้:**
+
+1. เปิด Console (F12)
+2. ไปที่แท็บ **Network**
+3. คลิกที่ request ที่ส่งไป
+4. ดู Response เพื่อดู Error message
+
+5. ทดสอบ Backend โดยตรงใน Apps Script:
+   ```javascript
+   function testSaveOrder() {
+     const testData = {
+       action: 'saveOrder',
+       userId: 'TestUser',
+       items: [
+         { menuId: 'M001', quantity: 1, selectedOptions: [] }
+       ],
+       type: 'dine-in',
+       payment: 'cash'
+     };
+     
+     const result = saveOrderAPI(testData);
+     Logger.log(result.getContent());
+   }
+   ```
 
 ---
 
-## 📄 License
+### ปัญหา 3: GitHub Pages ไม่อัพเดท
 
-MIT License - ใช้งานได้อย่างอิสระ
+**สาเหตุ:**
+- Browser Cache
+- GitHub Pages ยังไม่ build เสร็จ
+
+**วิธีแก้:**
+
+1. **Clear Browser Cache:**
+   - กด `Ctrl + Shift + R` (Windows/Linux)
+   - กด `Cmd + Shift + R` (Mac)
+
+2. **Hard Refresh:**
+   - กด `Ctrl + F5` (Windows)
+   - กด `Cmd + Shift + Delete` (Mac) → Clear cache
+
+3. **รอสักครู่:**
+   - GitHub Pages ใช้เวลา 1-5 นาทีในการ build
+
+4. **ตรวจสอบ Build Status:**
+   - ไปที่ **Actions** tab ใน Repository
+   - ดู workflow status
 
 ---
 
-**พัฒนาโดย:** Senior Backend Developer Team  
-**เวอร์ชัน:** 1.0.0  
-**อัพเดทล่าสุด:** February 15, 2024
+### ปัญหา 4: มือถือแสดงผลไม่เรียบร้อย
+
+**วิธีแก้:**
+
+1. ตรวจสอบ meta viewport tag (ควรมีอยู่แล้วในโค้ด):
+   ```html
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   ```
+
+2. ทดสอบบน Chrome DevTools:
+   - กด F12
+   - คลิกไอคอนมือถือ (Toggle device toolbar)
+   - เลือก Device ต่างๆ เพื่อทดสอบ
+
+---
+
+## 📱 การเปิดใช้งานบนมือถือ
+
+### เพิ่มเป็น Home Screen (Mobile)
+
+**iOS (iPhone/iPad):**
+1. เปิดเว็บด้วย Safari
+2. กดปุ่ม Share (สี่เหลี่ยมมีลูกศร)
+3. เลื่อนลงหา **Add to Home Screen**
+4. ตั้งชื่อ: "Beauty Noodle Shop"
+5. กด **Add**
+
+**Android:**
+1. เปิดเว็บด้วย Chrome
+2. กดปุ่ม Menu (จุด 3 จุด)
+3. เลือก **Add to Home screen**
+4. ตั้งชื่อ: "Beauty Noodle Shop"
+5. กด **Add**
+
+---
+
+## 🎨 การปรับแต่ง (Optional)
+
+### เปลี่ยนชื่อร้าน
+แก้ไขใน HTML:
+```html
+<h1 class="text-3xl font-display font-bold">🍜 Beauty Noodle</h1>
+```
+
+### เปลี่ยนสี Theme
+แก้ไขใน CSS (ตัวแปร Tailwind):
+```javascript
+// ค้นหา:
+from-amber-600 to-orange-600
+
+// แทนที่ด้วยสีที่ต้องการ เช่น:
+from-blue-600 to-indigo-600
+```
+
+### เพิ่ม Favicon
+1. สร้างไฟล์ `favicon.ico` (16x16 หรือ 32x32 pixels)
+2. อัพโหลดไปยัง GitHub Repository
+3. เพิ่มในส่วน `<head>`:
+   ```html
+   <link rel="icon" type="image/x-icon" href="favicon.ico">
+   ```
+
+---
+
+## 📊 การติดตาม Analytics (Optional)
+
+### เพิ่ม Google Analytics
+
+1. สร้าง Property ใน Google Analytics
+2. คัดลอก Tracking Code
+3. เพิ่มก่อน `</head>`:
+   ```html
+   <!-- Google Analytics -->
+   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+   <script>
+     window.dataLayer = window.dataLayer || [];
+     function gtag(){dataLayer.push(arguments);}
+     gtag('js', new Date());
+     gtag('config', 'G-XXXXXXXXXX');
+   </script>
+   ```
+
+---
+
+## 🔒 Security Best Practices
+
+### 1. ใช้ HTTPS
+- GitHub Pages รองรับ HTTPS โดยอัตโนมัติ
+- ตรวจสอบว่า URL เป็น `https://` (ไม่ใช่ `http://`)
+
+### 2. ซ่อน Sensitive Data
+- **อย่า** Hard-code ข้อมูลสำคัญใน Frontend
+- **อย่า** เก็บข้อมูลลูกค้าใน localStorage
+- Backend ควรตรวจสอบ Authorization
+
+### 3. Rate Limiting
+พิจารณาเพิ่ม Rate Limiting ใน Backend เพื่อป้องกัน Abuse
+
+---
+
+## 🎉 สำเร็จแล้ว!
+
+คุณได้ Deploy เว็บไซต์ Beauty Noodle Shop ไปยัง GitHub Pages เรียบร้อยแล้ว! 🎊
+
+### URL ของคุณคือ:
+```
+https://YOUR_USERNAME.github.io/REPOSITORY_NAME/
+```
+
+### สามารถแชร์ URL นี้ให้ลูกค้าได้เลย! 🚀
+
+---
+
+## 💡 Tips เพิ่มเติม
+
+1. **Custom Domain:**
+   - สามารถใช้ Domain ของตัวเอง (เช่น www.beautynoodle.com)
+   - ไปที่ Settings → Pages → Custom domain
+
+2. **Performance:**
+   - ใช้ CDN สำหรับ images
+   - Minify CSS/JS (ถ้าต้องการ)
+
+3. **SEO:**
+   - เพิ่ม meta tags สำหรับ Social Media
+   - เพิ่ม robots.txt และ sitemap.xml
+
+4. **Backup:**
+   - GitHub จะเป็น backup อัตโนมัติ
+   - สามารถดูประวัติการแก้ไขได้ที่ Commits
+
+---
+
+**พัฒนาโดย:** Senior Frontend Developer Team  
+**วันที่:** February 16, 2026  
+**เวอร์ชัน:** 1.0.0
+
+สนับสนุน: หากมีปัญหาหรือคำถาม สามารถเปิด Issue ใน GitHub Repository ได้เลยครับ! 😊
