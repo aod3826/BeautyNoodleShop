@@ -25,6 +25,32 @@ function initialSetup() {
 }
 
 /**
+ * ตั้งค่า LINE Messaging API
+ * ให้รันฟังก์ชันนี้หลังจาก initialSetup() เพื่อบันทึกข้อมูล LINE
+ */
+function setupLineMessaging() {
+  const properties = PropertiesService.getScriptProperties();
+  
+  // ⚠️ แทนที่ด้วยค่าจริงจาก LINE Developers Console
+  properties.setProperty('LINE_ACCESS_TOKEN', 'YOUR_LINE_CHANNEL_ACCESS_TOKEN');
+  properties.setProperty('LINE_GROUP_ID', 'YOUR_LINE_GROUP_ID');
+  
+  Logger.log('✅ LINE Messaging setup completed.');
+  Logger.log('กรุณาแก้ไขค่า LINE_ACCESS_TOKEN และ LINE_GROUP_ID ให้ถูกต้อง');
+}
+
+/**
+ * ดึงค่า LINE Configuration
+ */
+function getLineConfig() {
+  const properties = PropertiesService.getScriptProperties();
+  return {
+    accessToken: properties.getProperty('LINE_ACCESS_TOKEN'),
+    groupId: properties.getProperty('LINE_GROUP_ID')
+  };
+}
+
+/**
  * ดึง Spreadsheet จาก Properties (ปลอดภัย)
  */
 function getSpreadsheet() {
@@ -228,7 +254,7 @@ function doGet(e) {
 }
 
 /**
- * POST API - รับ JSON Payload
+ * POST API - รับ JSON Payload และ LINE Webhook
  */
 function doPost(e) {
   // ใช้ Lock เพื่อป้องกันการเขียนทับกัน
@@ -240,7 +266,38 @@ function doPost(e) {
     
     // Parse JSON payload
     const payload = JSON.parse(e.postData.contents);
+    
+    // ตรวจสอบว่าเป็น LINE Webhook หรือไม่
+    if (payload.events && Array.isArray(payload.events)) {
+      return handleLineWebhook(payload);
+    }
+    
+    // ถ้าไม่ใช่ LINE Webhook ให้ดำเนินการตามปกติ
     const action = payload.action;
+    
+    switch (action) {
+      case 'saveOrder':
+        return saveOrderAPI(payload);
+      
+      case 'updateStatus':
+        return updateStatusAPI(payload);
+      
+      case 'updateConfig':
+        return updateConfigAPI(payload);
+      
+      default:
+        return createResponse(false, 'Invalid action', null, 400);
+    }
+    
+  } catch (error) {
+    logAction('SYSTEM', 'POST_ERROR', error.message);
+    return createResponse(false, 'Server error: ' + error.message, null, 500);
+    
+  } finally {
+    // ปลดล็อคเสมอ
+    lock.releaseLock();
+  }
+}
     
     switch (action) {
       case 'saveOrder':
@@ -420,6 +477,9 @@ function saveOrderAPI(payload) {
     
     if (saved) {
       logAction(userId, 'CREATE_ORDER', `Order ${orderId} created, Total: ${calculatedPrice} THB`);
+      
+      // ส่งการแจ้งเตือนไปยัง LINE ทันที
+      sendLineFlex(orderData);
       
       return createResponse(true, 'Order saved successfully', {
         orderId: orderId,
@@ -697,6 +757,417 @@ function logAction(userId, action, details) {
     
   } catch (error) {
     Logger.log('Error logging action: ' + error.message);
+  }
+}
+
+// ============================================================================
+// LINE MESSAGING INTEGRATION
+// ============================================================================
+
+/**
+ * ส่ง Flex Message ไปยังกลุ่ม LINE
+ */
+function sendLineFlex(orderData) {
+  try {
+    const lineConfig = getLineConfig();
+    
+    if (!lineConfig.accessToken || !lineConfig.groupId) {
+      Logger.log('⚠️ LINE configuration not found. Please run setupLineMessaging()');
+      return false;
+    }
+    
+    // สร้าง Flex Message
+    const flexMessage = createOrderFlexMessage(orderData);
+    
+    // ส่งข้อความผ่าน LINE Messaging API
+    const url = 'https://api.line.me/v2/bot/message/push';
+    const payload = {
+      to: lineConfig.groupId,
+      messages: [flexMessage]
+    };
+    
+    const options = {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + lineConfig.accessToken
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    
+    if (responseCode === 200) {
+      Logger.log('✅ LINE notification sent successfully');
+      logAction('SYSTEM', 'LINE_NOTIFICATION', `Order ${orderData.orderId} sent to LINE`);
+      return true;
+    } else {
+      Logger.log('❌ LINE API Error: ' + response.getContentText());
+      return false;
+    }
+    
+  } catch (error) {
+    Logger.log('❌ Error sending LINE message: ' + error.message);
+    return false;
+  }
+}
+
+/**
+ * สร้าง Flex Message สำหรับแสดงออเดอร์
+ */
+function createOrderFlexMessage(orderData) {
+  // ดึงข้อมูลเมนู
+  const menuItems = getMenuItems();
+  
+  // สร้างรายการอาหาร
+  const itemsContent = orderData.items.map(item => {
+    const menuItem = menuItems.find(m => m.id === item.menuId);
+    const menuName = menuItem ? menuItem.name : item.menuId;
+    
+    // สร้างข้อความตัวเลือก
+    let optionsText = '';
+    if (item.selectedOptions && item.selectedOptions.length > 0) {
+      optionsText = '\n(' + item.selectedOptions.map(opt => opt.replace(/\+\d+/, '')).join(', ') + ')';
+    }
+    
+    return {
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        {
+          type: 'text',
+          text: `${item.quantity}x`,
+          size: 'sm',
+          color: '#555555',
+          flex: 0,
+          margin: 'none'
+        },
+        {
+          type: 'text',
+          text: menuName + optionsText,
+          size: 'sm',
+          color: '#111111',
+          wrap: true,
+          flex: 5,
+          margin: 'md'
+        }
+      ],
+      margin: 'md'
+    };
+  });
+  
+  // ไอคอนตามประเภทออเดอร์
+  const typeIcon = orderData.type === 'dine-in' ? '🍽️' : '📦';
+  const typeText = orderData.type === 'dine-in' ? 'ทานที่ร้าน' : 'ซื้อกลับ';
+  
+  // สร้าง Flex Message
+  const flexMessage = {
+    type: 'flex',
+    altText: `ออเดอร์ใหม่ #${orderData.orderId}`,
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: '🍜 ออเดอร์ใหม่!',
+            color: '#ffffff',
+            size: 'xl',
+            weight: 'bold'
+          },
+          {
+            type: 'text',
+            text: `#${orderData.orderId}`,
+            color: '#ffffff',
+            size: 'sm',
+            margin: 'xs'
+          }
+        ],
+        backgroundColor: '#F59E0B',
+        paddingAll: '20px'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: 'ประเภท:',
+                size: 'sm',
+                color: '#555555',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: `${typeIcon} ${typeText}`,
+                size: 'sm',
+                color: '#111111',
+                weight: 'bold',
+                flex: 5,
+                margin: 'md'
+              }
+            ],
+            margin: 'none'
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: 'ชำระเงิน:',
+                size: 'sm',
+                color: '#555555',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: orderData.payment === 'cash' ? '💵 เงินสด' : 
+                      orderData.payment === 'qr-code' ? '📱 QR Code' : '🏦 โอนเงิน',
+                size: 'sm',
+                color: '#111111',
+                flex: 5,
+                margin: 'md'
+              }
+            ],
+            margin: 'md'
+          },
+          {
+            type: 'separator',
+            margin: 'xl'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: 'รายการอาหาร:',
+                size: 'sm',
+                color: '#555555',
+                weight: 'bold',
+                margin: 'md'
+              },
+              ...itemsContent
+            ]
+          },
+          {
+            type: 'separator',
+            margin: 'xl'
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: 'ยอดรวม',
+                size: 'md',
+                color: '#555555',
+                weight: 'bold'
+              },
+              {
+                type: 'text',
+                text: `${orderData.totalPrice} ฿`,
+                size: 'xl',
+                color: '#D97706',
+                weight: 'bold',
+                align: 'end'
+              }
+            ],
+            margin: 'lg'
+          }
+        ],
+        spacing: 'md',
+        paddingAll: '20px'
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            action: {
+              type: 'postback',
+              label: '✅ รับออเดอร์',
+              data: `action=accept_order&orderId=${orderData.orderId}`,
+              displayText: 'รับออเดอร์แล้ว'
+            },
+            style: 'primary',
+            color: '#10B981',
+            height: 'sm'
+          },
+          {
+            type: 'button',
+            action: {
+              type: 'uri',
+              label: '📞 โทรหาลูกค้า',
+              uri: `tel:0812345678`
+            },
+            style: 'link',
+            height: 'sm',
+            margin: 'sm'
+          }
+        ],
+        spacing: 'sm',
+        paddingAll: '20px'
+      }
+    }
+  };
+  
+  return flexMessage;
+}
+
+/**
+ * จัดการ LINE Webhook Events
+ */
+function handleLineWebhook(webhookData) {
+  try {
+    const events = webhookData.events || [];
+    
+    events.forEach(event => {
+      if (event.type === 'postback') {
+        handlePostbackEvent(event);
+      }
+    });
+    
+    // ตอบกลับ LINE ว่าได้รับ webhook แล้ว
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+      .setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error handling LINE webhook: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * จัดการ Postback Event จากปุ่ม LINE
+ */
+function handlePostbackEvent(event) {
+  try {
+    const data = event.postback.data;
+    const replyToken = event.replyToken;
+    
+    // Parse postback data
+    const params = {};
+    data.split('&').forEach(pair => {
+      const [key, value] = pair.split('=');
+      params[key] = value;
+    });
+    
+    if (params.action === 'accept_order') {
+      const orderId = params.orderId;
+      
+      // ตรวจสอบสถานะปัจจุบัน
+      const currentOrder = getOrderById(orderId);
+      
+      if (!currentOrder) {
+        replyLineMessage(replyToken, 'ไม่พบออเดอร์นี้ในระบบ');
+        return;
+      }
+      
+      if (currentOrder.status !== 'pending') {
+        replyLineMessage(replyToken, `⚠️ ออเดอร์นี้ถูกรับไปแล้ว (สถานะ: ${currentOrder.status})`);
+        return;
+      }
+      
+      // อัพเดทสถานะเป็น confirmed
+      const updated = updateOrderStatus(orderId, 'confirmed');
+      
+      if (updated) {
+        logAction('LINE_USER', 'ACCEPT_ORDER', `Order ${orderId} accepted via LINE`);
+        replyLineMessage(replyToken, `✅ รับออเดอร์ #${orderId} เรียบร้อยแล้ว!\n\nกำลังเริ่มทำอาหาร... 🍳`);
+      } else {
+        replyLineMessage(replyToken, '❌ เกิดข้อผิดพลาดในการอัพเดทสถานะ');
+      }
+    }
+    
+  } catch (error) {
+    Logger.log('Error handling postback: ' + error.message);
+  }
+}
+
+/**
+ * ส่งข้อความตอบกลับผ่าน LINE Reply API
+ */
+function replyLineMessage(replyToken, messageText) {
+  try {
+    const lineConfig = getLineConfig();
+    
+    if (!lineConfig.accessToken) {
+      Logger.log('LINE access token not found');
+      return;
+    }
+    
+    const url = 'https://api.line.me/v2/bot/message/reply';
+    const payload = {
+      replyToken: replyToken,
+      messages: [
+        {
+          type: 'text',
+          text: messageText
+        }
+      ]
+    };
+    
+    const options = {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + lineConfig.accessToken
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    Logger.log('LINE reply response: ' + response.getResponseCode());
+    
+  } catch (error) {
+    Logger.log('Error sending LINE reply: ' + error.message);
+  }
+}
+
+/**
+ * ดึงข้อมูลออเดอร์จาก Order ID
+ */
+function getOrderById(orderId) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Orders');
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === orderId) {
+        return {
+          orderId: data[i][0],
+          userId: data[i][1],
+          items: JSON.parse(data[i][2] || '[]'),
+          totalPrice: Number(data[i][3]),
+          type: data[i][4],
+          payment: data[i][5],
+          status: data[i][6],
+          timestamp: data[i][7]
+        };
+      }
+    }
+    
+    return null;
+    
+  } catch (error) {
+    Logger.log('Error getting order: ' + error.message);
+    return null;
   }
 }
 
