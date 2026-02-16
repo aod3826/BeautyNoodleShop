@@ -298,30 +298,6 @@ function doPost(e) {
     lock.releaseLock();
   }
 }
-    
-    switch (action) {
-      case 'saveOrder':
-        return saveOrderAPI(payload);
-      
-      case 'updateStatus':
-        return updateStatusAPI(payload);
-      
-      case 'updateConfig':
-        return updateConfigAPI(payload);
-      
-      default:
-        return createResponse(false, 'Invalid action', null, 400);
-    }
-    
-  } catch (error) {
-    logAction('SYSTEM', 'POST_ERROR', error.message);
-    return createResponse(false, 'Server error: ' + error.message, null, 500);
-    
-  } finally {
-    // ปลดล็อคเสมอ
-    lock.releaseLock();
-  }
-}
 
 // ============================================================================
 // API FUNCTIONS - GET
