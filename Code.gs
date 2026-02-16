@@ -229,26 +229,31 @@ function createLogsSheet(ss) {
  * GET API - ดึงข้อมูลเมนูและสถานะร้านค้า
  */
 function doGet(e) {
+  // 1. ถ้าไม่มีการส่ง parameter 'action' มา ให้แสดงหน้าเว็บ HTML (index.html)
+  if (!e.parameter.action) {
+    return HtmlService.createTemplateFromFile('index')
+      .evaluate()
+      .setTitle('Beauty Noodle Shop')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  // 2. ถ้ามีการส่ง action มา (เช่น เพื่อดึงข้อมูล API) ให้ทำงานตามปกติ
   try {
-    const action = e.parameter.action || 'getMenu';
+    const action = e.parameter.action;
     
     switch (action) {
       case 'getMenu':
         return getMenuAPI();
-      
       case 'getShopStatus':
         return getShopStatusAPI();
-      
       case 'getOrder':
         const orderId = e.parameter.orderId;
         return getOrderAPI(orderId);
-      
       default:
         return createResponse(false, 'Invalid action', null, 400);
     }
-    
   } catch (error) {
-    logAction('SYSTEM', 'GET_ERROR', error.message);
     return createResponse(false, 'Server error: ' + error.message, null, 500);
   }
 }
