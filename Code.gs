@@ -352,10 +352,12 @@ function getMenuAPI() {
 function getShopStatusAPI() {
   try {
     const config = getConfig();
-    
+    const isOpenByConfig = parseConfigBoolean(config.isOpen);
+
     const shopStatus = {
       shopName: config.shopName || 'Beauty Noodle Shop',
-      isOpen: config.isOpen === 'true',
+      isOpen: isOpenByConfig,
+      isOpenByConfig: isOpenByConfig,
       liffId: config.liffId || '',
       currency: config.currency || 'THB'
     };
@@ -367,6 +369,22 @@ function getShopStatusAPI() {
   } catch (error) {
     return createResponse(false, 'Error retrieving shop status: ' + error.message, null, 500);
   }
+}
+
+
+/**
+ * แปลงค่า config ที่รับมาจากชีตให้เป็น boolean
+ */
+function parseConfigBoolean(value) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  return String(value).trim().toLowerCase() === 'true';
 }
 
 /**

@@ -450,8 +450,11 @@
                 
                 // Check shop status
                 if (statusResult.success && statusResult.data) {
-                    isShopOpen = statusResult.data.isOpen;
-                    updateShopStatus(statusResult.data);
+                    // ใช้ค่าสถานะจาก Config เป็นหลักเท่านั้น (ไม่อิงเวลาจากเครื่องผู้ใช้)
+                    isShopOpen = typeof statusResult.data.isOpenByConfig === 'boolean'
+                        ? statusResult.data.isOpenByConfig
+                        : statusResult.data.isOpen;
+                    updateShopStatus({ isOpen: isShopOpen });
                 }
                 
                 // Load menu
