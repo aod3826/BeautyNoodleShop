@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty Noodle - Admin Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            font-family: 'Sarabun', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b45309;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Status badges */
+        .status-badge {
+            @apply px-3 py-1 rounded-full text-xs font-semibold;
+        }
+        
+        .status-pending {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+        
+        .status-confirmed {
+            @apply bg-blue-100 text-blue-800;
+        }
+        
+        .status-preparing {
+            @apply bg-purple-100 text-purple-800;
+        }
+        
+        .status-ready {
+            @apply bg-green-100 text-green-800;
+        }
+        
+        .status-completed {
+            @apply bg-gray-100 text-gray-800;
+        }
+        
+        .status-cancelled {
+            @apply bg-red-100 text-red-800;
+        }
+        
+        /* Stock status */
+        .stock-high {
+            @apply bg-green-100 text-green-800;
+        }
+        
+        .stock-medium {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+        
+        .stock-low {
+            @apply bg-orange-100 text-orange-800;
+        }
+        
+        .stock-out {
+            @apply bg-red-100 text-red-800;
+        }
+        
+        /* Hover effects */
+        .hover-lift {
+            transition: transform 0.2s;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #d97706;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Navigation -->
+    <nav class="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-store text-2xl mr-3"></i>
+                    <span class="font-bold text-xl">Beauty Noodle Admin</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm bg-white/20 px-3 py-1 rounded-full">
+                        <i class="far fa-clock mr-1"></i>
+                        <span id="currentTime"></span>
+                    </span>
+                    <button onclick="refreshDashboard()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
+                        <i class="fas fa-sync-alt mr-1"></i> รีเฟรช
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Today's Orders -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">ออเดอร์วันนี้</p>
+                        <p id="todayOrders" class="text-3xl font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-shopping-cart text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">
+                    <span id="todayRevenue" class="font-semibold text-green-600">0 ฿</span> รายได้
+                </div>
+            </div>
+            
+            <!-- Pending Orders -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift animate-fade-in delay-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">รอดำเนินการ</p>
+                        <p id="pendingOrders" class="text-3xl font-bold text-yellow-600">0</p>
+                    </div>
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">
+                    <span id="preparingOrders" class="font-semibold text-purple-600">0</span> กำลังทำ
+                </div>
+            </div>
+            
+            <!-- Total Revenue -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift animate-fade-in delay-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">รายได้ทั้งหมด</p>
+                        <p id="totalRevenue" class="text-3xl font-bold text-green-600">0 ฿</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-wallet text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">
+                    เฉลี่ย <span id="avgOrderValue" class="font-semibold">0 ฿</span>/ออเดอร์
+                </div>
+            </div>
+            
+            <!-- Low Stock Alert -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift animate-fade-in delay-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">สินค้าใกล้หมด</p>
+                        <p id="lowStockCount" class="text-3xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">
+                    <span id="totalItems" class="font-semibold">0</span> รายการทั้งหมด
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Sales Chart -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-gray-800">
+                        <i class="fas fa-chart-bar text-amber-600 mr-2"></i>
+                        ยอดขายรายวัน (7 วันล่าสุด)
+                    </h3>
+                    <select id="chartPeriod" class="text-sm border rounded-lg px-2 py-1">
+                        <option value="7">7 วัน</option>
+                        <option value="30">30 วัน</option>
+                    </select>
+                </div>
+                <canvas id="salesChart" height="250"></canvas>
+            </div>
+            
+            <!-- Best Selling Items -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-gray-800">
+                        <i class="fas fa-trophy text-amber-600 mr-2"></i>
+                        เมนูขายดี
+                    </h3>
+                    <select id="bestSellingCategory" class="text-sm border rounded-lg px-2 py-1">
+                        <option value="all">ทั้งหมด</option>
+                    </select>
+                </div>
+                <div id="bestSellingList" class="space-y-3">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="flex space-x-8">
+                <button onclick="switchTab('orders')" class="tab-button active py-4 px-1 border-b-2 border-amber-600 font-semibold text-amber-600">
+                    <i class="fas fa-list mr-2"></i>รายการออเดอร์
+                </button>
+                <button onclick="switchTab('inventory')" class="tab-button py-4 px-1 border-b-2 border-transparent font-semibold text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-box mr-2"></i>จัดการสต็อก
+                </button>
+            </nav>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content">
+            <!-- Filters -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex gap-2">
+                        <button onclick="filterOrders('all')" class="filter-btn active px-4 py-2 rounded-lg bg-amber-600 text-white font-semibold">
+                            ทั้งหมด
+                        </button>
+                        <button onclick="filterOrders('Pending')" class="filter-btn px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 font-semibold hover:bg-yellow-200">
+                            รอดำเนินการ
+                        </button>
+                        <button onclick="filterOrders('Preparing')" class="filter-btn px-4 py-2 rounded-lg bg-purple-100 text-purple-800 font-semibold hover:bg-purple-200">
+                            กำลังทำ
+                        </button>
+                        <button onclick="filterOrders('Completed')" class="filter-btn px-4 py-2 rounded-lg bg-green-100 text-green-800 font-semibold hover:bg-green-200">
+                            เสร็จแล้ว
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="searchOrder" placeholder="ค้นหาออเดอร์..." 
+                               class="px-4 py-2 border rounded-lg focus:outline-none focus:border-amber-600">
+                        <button onclick="searchOrders()" class="bg-gray-100 px-4 py-2 rounded-lg hover:bg-gray-200">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Table -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ออเดอร์</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">วันที่</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">รายการ</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ยอดรวม</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">สถานะ</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="6" class="text-center py-8 text-gray-500">
+                                    <div class="spinner mx-auto mb-4"></div>
+                                    กำลังโหลดข้อมูล...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div id="inventoryTab" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-gray-800 text-lg">
+                        <i class="fas fa-boxes mr-2 text-amber-600"></i>
+                        คลังวัตถุดิบ
+                    </h3>
+                    <button onclick="showAddInventoryModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">
+                        <i class="fas fa-plus mr-2"></i>เพิ่มสินค้า
+                    </button>
+                </div>
+                
+                <!-- Inventory Grid -->
+                <div id="inventoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Status -->
+    <div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6">
+            <h3 class="font-bold text-gray-800 text-lg mb-4">เปลี่ยนสถานะออเดอร์</h3>
+            <select id="modalNewStatus" class="w-full border rounded-lg px-4 py-3 mb-4">
+                <option value="Pending">⏳ รอดำเนินการ</option>
+                <option value="Confirmed">✓ ยืนยันออเดอร์</option>
+                <option value="Preparing">👨‍🍳 กำลังทำ</option>
+                <option value="Ready">✅ ทำเสร็จแล้ว</option>
+                <option value="Completed">🏁 เสร็จสิ้น</option>
+                <option value="Cancelled">❌ ยกเลิก</option>
+            </select>
+            <div class="flex gap-2">
+                <button onclick="confirmStatusChange()" class="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">
+                    ยืนยัน
+                </button>
+                <button onclick="closeStatusModal()" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Inventory -->
+    <div id="inventoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6">
+            <h3 class="font-bold text-gray-800 text-lg mb-4" id="inventoryModalTitle">แก้ไขสต็อก</h3>
+            <input type="hidden" id="inventoryItemId">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">จำนวน</label>
+                <input type="number" id="inventoryQuantity" class="w-full border rounded-lg px-4 py-3" min="0">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="confirmInventoryUpdate()" class="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">
+                บันทึก
+                </button>
+                <button onclick="closeInventoryModal()" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Inventory -->
+    <div id="addInventoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-gray-800 text-lg mb-4">เพิ่มสินค้าใหม่</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ชื่อสินค้า</label>
+                    <input type="text" id="newItemName" class="w-full border rounded-lg px-4 py-3">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">หมวดหมู่</label>
+                    <select id="newItemCategory" class="w-full border rounded-lg px-4 py-3">
+                        <option value="เส้น">เส้น</option>
+                        <option value="เนื้อ">เนื้อ</option>
+                        <option value="ผัก">ผัก</option>
+                        <option value="ของสด">ของสด</option>
+                        <option value="เครื่องปรุง">เครื่องปรุง</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">หน่วย</label>
+                    <input type="text" id="newItemUnit" class="w-full border rounded-lg px-4 py-3" placeholder="เช่น กิโลกรัม, ชิ้น, ฟอง">
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">จำนวน</label>
+                        <input type="number" id="newItemStock" class="w-full border rounded-lg px-4 py-3" min="0" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">ขั้นต่ำ</label>
+                        <input type="number" id="newItemMin" class="w-full border rounded-lg px-4 py-3" min="0" value="5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">สูงสุด</label>
+                        <input type="number" id="newItemMax" class="w-full border rounded-lg px-4 py-3" min="0" value="50">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ราคาต่อหน่วย (ต้นทุน)</label>
+                    <input type="number" id="newItemCost" class="w-full border rounded-lg px-4 py-3" min="0" value="0">
+                </div>
+            </div>
+            
+            <div class="flex gap-2 mt-6">
+                <button onclick="confirmAddInventory()" class="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">
+                    เพิ่มสินค้า
+                </button>
+                <button onclick="closeAddInventoryModal()" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Delete -->
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-5xl mb-4"></i>
+                <h3 class="font-bold text-gray-800 text-lg mb-2">ยืนยันการลบ</h3>
+                <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ที่จะลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+                <div class="flex gap-2">
+                    <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                        ลบ
+                    </button>
+                    <button onclick="closeDeleteModal()" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">
+                        ยกเลิก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl p-8 text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">กำลังดำเนินการ...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[101] hidden">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // ============================================================================
+        // CONFIGURATION
+        // ============================================================================
+        
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0myjdh6Z1FQoTyknlGRJd0uwQhUT7P6uBacy-yoWUqoP8qmWO6PvVhKTHtnO_0o73jw/exec';
+        
+        // ============================================================================
+        // STATE MANAGEMENT
+        // ============================================================================
+        
+        let orders = [];
+        let stats = {};
+        let inventory = [];
+        let bestSelling = [];
+        let currentFilter = 'all';
+        let currentOrderId = null;
+        let currentItemId = null;
+        let deleteType = null;
+        let salesChart = null;
+        
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+            loadDashboardData();
+        });
+        
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // ============================================================================
+        // DATA LOADING
+        // ============================================================================
+        
+        async function loadDashboardData() {
+            showLoading();
+            
+            try {
+                // Load all data in parallel
+                const [statsRes, ordersRes, bestSellingRes, inventoryRes] = await Promise.all([
+                    fetch(`${SCRIPT_URL}?action=getDashboardStats`),
+                    fetch(`${SCRIPT_URL}?action=getAllOrders`),
+                    fetch(`${SCRIPT_URL}?action=getBestSellingItems`),
+                    fetch(`${SCRIPT_URL}?action=getInventoryStatus`)
+                ]);
+                
+                const statsData = await statsRes.json();
+                const ordersData = await ordersRes.json();
+                const bestSellingData = await bestSellingRes.json();
+                const inventoryData = await inventoryRes.json();
+                
+                if (statsData.success) stats = statsData.data;
+                if (ordersData.success) orders = ordersData.data.orders;
+                if (bestSellingData.success) bestSelling = bestSellingData.data;
+                if (inventoryData.success) inventory = inventoryData.data;
+                
+                updateStats();
+                renderOrdersTable();
+                renderBestSelling();
+                renderInventory();
+                updateCharts();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+            }
+            
+            hideLoading();
+        }
+        
+        function refreshDashboard() {
+            loadDashboardData();
+        }
+        
+        // ============================================================================
+        // STATS UPDATE
+        // ============================================================================
+        
+        function updateStats() {
+            document.getElementById('todayOrders').textContent = stats.todayOrders || 0;
+            document.getElementById('todayRevenue').textContent = (stats.todayRevenue || 0) + ' ฿';
+            document.getElementById('pendingOrders').textContent = stats.pendingOrders || 0;
+            document.getElementById('preparingOrders').textContent = stats.preparingOrders || 0;
+            document.getElementById('totalRevenue').textContent = (stats.totalRevenue || 0) + ' ฿';
+            document.getElementById('avgOrderValue').textContent = stats.averageOrderValue || 0;
+            
+            if (inventory.lowStock) {
+                document.getElementById('lowStockCount').textContent = inventory.lowStockCount || 0;
+                document.getElementById('totalItems').textContent = inventory.all?.length || 0;
+            }
+        }
+        
+        // ============================================================================
+        // ORDERS TABLE
+        // ============================================================================
+        
+        function renderOrdersTable() {
+            const tbody = document.getElementById('ordersTableBody');
+            
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>ไม่มีรายการออเดอร์</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            const filteredOrders = filterOrdersByStatus(orders, currentFilter);
+            
+            tbody.innerHTML = filteredOrders.map(order => {
+                const statusClass = getStatusClass(order.status);
+                const itemsCount = order.items ? order.items.length : 0;
+                const date = new Date(order.timestamp).toLocaleString('th-TH');
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="font-semibold">${order.orderId}</div>
+                            <div class="text-xs text-gray-500">${order.userId}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm">${date}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm">
+                                <span class="font-semibold">${itemsCount}</span> รายการ
+                            </div>
+                            <div class="text-xs text-gray-500">${order.type} • ${order.payment}</div>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-amber-600">${order.totalPrice} ฿</td>
+                        <td class="px-6 py-4">
+                            <span class="status-badge ${statusClass}">${getStatusThai(order.status)}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex gap-2">
+                                <button onclick="openStatusModal('${order.orderId}')" 
+                                        class="text-blue-600 hover:text-blue-800 p-2">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="openDeleteModal('order', '${order.orderId}')" 
+                                        class="text-red-600 hover:text-red-800 p-2">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function filterOrdersByStatus(orders, status) {
+            if (status === 'all') return orders;
+            return orders.filter(order => order.status === status);
+        }
+        
+        function filterOrders(status) {
+            currentFilter = status;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-amber-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-800');
+            });
+            
+            event.target.classList.remove('bg-gray-100', 'text-gray-800');
+            event.target.classList.add('active', 'bg-amber-600', 'text-white');
+            
+            renderOrdersTable();
+        }
+        
+        function searchOrders() {
+            const query = document.getElementById('searchOrder').value.toLowerCase();
+            
+            if (!query) {
+                renderOrdersTable();
+                return;
+            }
+            
+            const filtered = orders.filter(order => 
+                order.orderId.toLowerCase().includes(query) ||
+                order.userId.toLowerCase().includes(query)
+            );
+            
+            const tbody = document.getElementById('ordersTableBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-gray-500">
+                            <p>ไม่พบออเดอร์ที่ค้นหา</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                orders = filtered;
+                renderOrdersTable();
+            }
+        }
+        
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Pending': return 'status-pending';
+                case 'Confirmed': return 'status-confirmed';
+                case 'Preparing': return 'status-preparing';
+                case 'Ready': return 'status-ready';
+                case 'Completed': return 'status-completed';
+                case 'Cancelled': return 'status-cancelled';
+                default: return 'status-pending';
+            }
+        }
+        
+        function getStatusThai(status) {
+            const statusMap = {
+                'Pending': '⏳ รอดำเนินการ',
+                'Confirmed': '✓ ยืนยันแล้ว',
+                'Preparing': '👨‍🍳 กำลังทำ',
+                'Ready': '✅ ทำเสร็จ',
+                'Completed': '🏁 เสร็จสิ้น',
+                'Cancelled': '❌ ยกเลิก'
+            };
+            return statusMap[status] || status;
+        }
+        
+        // ============================================================================
+        // ORDER ACTIONS
+        // ============================================================================
+        
+        function openStatusModal(orderId) {
+            currentOrderId = orderId;
+            document.getElementById('statusModal').classList.remove('hidden');
+        }
+        
+        function closeStatusModal() {
+            document.getElementById('statusModal').classList.add('hidden');
+            currentOrderId = null;
+        }
+        
+        async function confirmStatusChange() {
+            const newStatus = document.getElementById('modalNewStatus').value;
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'adminUpdateOrderStatus',
+                        orderId: currentOrderId,
+                        status: newStatus,
+                        adminId: 'ADMIN'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('อัปเดตสถานะสำเร็จ');
+                    closeStatusModal();
+                    loadDashboardData();
+                } else {
+                    showToast(result.error || 'เกิดข้อผิดพลาด', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('เกิดข้อผิดพลาด', 'error');
+            }
+            
+            hideLoading();
+        }
+        
+        // ============================================================================
+        // DELETE FUNCTION
+        // ============================================================================
+        
+        function openDeleteModal(type, id) {
+            deleteType = type;
+            currentOrderId = id;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deleteType = null;
+            currentOrderId = null;
+        }
+        
+        async function confirmDelete() {
+            showLoading();
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'adminDeleteOrder',
+                        orderId: currentOrderId,
+                        adminId: 'ADMIN'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('ลบรายการสำเร็จ');
+                    closeDeleteModal();
+                    loadDashboardData();
+                } else {
+                    showToast(result.error || 'เกิดข้อผิดพลาด', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('เกิดข้อผิดพลาด', 'error');
+            }
+            
+            hideLoading();
+        }
+        
+        // ============================================================================
+        // BEST SELLING
+        // ============================================================================
+        
+        function renderBestSelling() {
+            const container = document.getElementById('bestSellingList');
+            const categorySelect = document.getElementById('bestSellingCategory');
+            
+            if (!bestSelling.all || bestSelling.all.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">ไม่มีข้อมูล</p>';
+                return;
+            }
+            
+            // Update category filter
+            const categories = Object.keys(bestSelling.byCategory || {});
+            categorySelect.innerHTML = '<option value="all">ทั้งหมด</option>' +
+                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            
+            renderBestSellingItems('all');
+        }
+        
+        function renderBestSellingItems(category) {
+            const container = document.getElementById('bestSellingList');
+            
+            let items = [];
+            if (category === 'all') {
+                items = bestSelling.all || [];
+            } else {
+                items = bestSelling.byCategory?.[category] || [];
+            }
+            
+            container.innerHTML = items.slice(0, 5).map((item, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-6 h-6 flex items-center justify-center bg-amber-600 text-white rounded-full text-sm font-bold mr-3">
+                            ${index + 1}
+                        </span>
+                        <div>
+                            <div class="font-semibold">${item.name}</div>
+                            <div class="text-xs text-gray-500">${item.category}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-amber-600">${item.quantity} ชิ้น</div>
+                        <div class="text-xs text-gray-500">${item.revenue} ฿</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('bestSellingCategory')?.addEventListener('change', (e) => {
+            renderBestSellingItems(e.target.value);
+        });
+        
+        // ============================================================================
+        // INVENTORY
+        // ============================================================================
+        
+        function renderInventory() {
+            const grid = document.getElementById('inventoryGrid');
+            
+            if (!inventory.all || inventory.all.length === 0) {
+                grid.innerHTML = '<p class="text-gray-500">ไม่มีข้อมูลสต็อก</p>';
+                return;
+            }
+            
+            grid.innerHTML = inventory.all.map(item => {
+                const statusClass = getStockStatusClass(item.status);
+                const statusText = getStockStatusThai(item.status);
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-semibold">${item.name}</h4>
+                                <p class="text-xs text-gray-500">${item.category} • ${item.unit}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>คงเหลือ</span>
+                                <span class="font-bold">${item.currentStock} ${item.unit}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-amber-600 rounded-full h-2" 
+                                     style="width: ${Math.min(100, (item.currentStock / item.maxStock) * 100)}%">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>ขั้นต่ำ: ${item.minStock}</span>
+                                <span>สูงสุด: ${item.maxStock}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button onclick="openInventoryModal('${item.id}', '${item.name}', ${item.currentStock})" 
+                                    class="flex-1 bg-amber-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-700">
+                                <i class="fas fa-edit mr-1"></i>แก้ไข
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getStockStatusClass(status) {
+            switch(status) {
+                case 'high': return 'stock-high';
+                case 'medium': return 'stock-medium';
+                case 'low': return 'stock-low';
+                case 'out': return 'stock-out';
+                default: return 'stock-medium';
+            }
+        }
+        
+        function getStockStatusThai(status) {
+            const map = {
+                'high': 'ปกติ',
+                'medium': 'ปานกลาง',
+                'low': 'ใกล้หมด',
+                'out': 'หมด'
+            };
+            return map[status] || status;
+        }
+        
+        function openInventoryModal(id, name, currentStock) {
+            currentItemId = id;
+            document.getElementById('inventoryModalTitle').textContent = `แก้ไขสต็อก: ${name}`;
+            document.getElementById('inventoryQuantity').value = currentStock;
+            document.getElementById('inventoryModal').classList.remove('hidden');
+        }
+        
+        function closeInventoryModal() {
+            document.getElementById('inventoryModal').classList.add('hidden');
+            currentItemId = null;
+        }
+        
+        async function confirmInventoryUpdate() {
+            const newQuantity = document.getElementById('inventoryQuantity').value;
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'adminUpdateInventory',
+                        itemId: currentItemId,
+                        quantity: parseInt(newQuantity),
+                        adminId: 'ADMIN'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('อัปเดตสต็อกสำเร็จ');
+                    closeInventoryModal();
+                    loadDashboardData();
+                } else {
+                    showToast(result.error || 'เกิดข้อผิดพลาด', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('เกิดข้อผิดพลาด', 'error');
+            }
+            
+            hideLoading();
+        }
+        
+        function showAddInventoryModal() {
+            document.getElementById('addInventoryModal').classList.remove('hidden');
+        }
+        
+        function closeAddInventoryModal() {
+            document.getElementById('addInventoryModal').classList.add('hidden');
+            // Clear form
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemCategory').value = 'เส้น';
+            document.getElementById('newItemUnit').value = '';
+            document.getElementById('newItemStock').value = '0';
+            document.getElementById('newItemMin').value = '5';
+            document.getElementById('newItemMax').value = '50';
+            document.getElementById('newItemCost').value = '0';
+        }
+        
+        async function confirmAddInventory() {
+            const itemData = {
+                name: document.getElementById('newItemName').value,
+                category: document.getElementById('newItemCategory').value,
+                unit: document.getElementById('newItemUnit').value,
+                currentStock: parseInt(document.getElementById('newItemStock').value),
+                minStock: parseInt(document.getElementById('newItemMin').value),
+                maxStock: parseInt(document.getElementById('newItemMax').value),
+                costPerUnit: parseInt(document.getElementById('newItemCost').value)
+            };
+            
+            if (!itemData.name || !itemData.unit) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'adminAddInventoryItem',
+                        itemData: itemData,
+                        adminId: 'ADMIN'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('เพิ่มสินค้าสำเร็จ');
+                    closeAddInventoryModal();
+                    loadDashboardData();
+                } else {
+                    showToast(result.error || 'เกิดข้อผิดพลาด', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('เกิดข้อผิดพลาด', 'error');
+            }
+            
+            hideLoading();
+        }
+        
+        // ============================================================================
+        // CHARTS
+        // ============================================================================
+        
+        function updateCharts() {
+            // Sample data - in real implementation, you'd get this from API
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            if (salesChart) {
+                salesChart.destroy();
+            }
+            
+            salesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'],
+                    datasets: [{
+                        label: 'ยอดขาย (บาท)',
+                        data: [1200, 1900, 1500, 2100, 1800, 2400, 1600],
+                        backgroundColor: 'rgba(217, 119, 6, 0.2)',
+                        borderColor: 'rgba(217, 119, 6, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ============================================================================
+        // TABS
+        // ============================================================================
+        
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active', 'border-amber-600', 'text-amber-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            event.target.classList.remove('border-transparent', 'text-gray-500');
+            event.target.classList.add('active', 'border-amber-600', 'text-amber-600');
+            
+            // Show/hide tabs
+            document.getElementById('ordersTab').classList.toggle('hidden', tab !== 'orders');
+            document.getElementById('inventoryTab').classList.toggle('hidden', tab !== 'inventory');
+        }
+        
+        // ============================================================================
+        // UTILITIES
+        // ============================================================================
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            if (type === 'error') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-red-600');
+            } else {
+                toast.classList.remove('bg-red-600');
+                toast.classList.add('bg-green-600');
+            }
+            
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            if (!document.getElementById('loadingOverlay').classList.contains('hidden')) {
+                return;
+            }
+            loadDashboardData();
+        }, 30000);
+    </script>
+</body>
+</html>
