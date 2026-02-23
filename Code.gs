@@ -2152,3 +2152,27 @@ function updateInventoryFromOrder(orderData) {
     logAction('INVENTORY_UPDATE_ERROR', error.message, 'SYSTEM');
   }
 }
+
+// ใน Code.gs
+function adminLogin(username, password) {
+  const validUsername = 'admin';
+  const validPassword = 'beautynoodle123';
+  
+  if (username === validUsername && password === validPassword) {
+    const token = Utilities.getUuid();
+    PropertiesService.getScriptProperties().setProperty('ADMIN_TOKEN', token);
+    return { success: true, token: token };
+  }
+  return { success: false };
+}
+function exportOrdersToCSV() {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName('Orders');
+  const data = sheet.getDataRange().getValues();
+  
+  const csv = data.map(row => row.join(',')).join('\n');
+  
+  return ContentService.createTextOutput(csv)
+    .setMimeType(ContentService.MimeType.CSV)
+    .downloadAsFile(`orders_${new Date().toISOString()}.csv`);
+} 
