@@ -2,16 +2,19 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beauty Noodle Shop - สั่งก่วยเตี๋ยวออนไลน์</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Beauty Noodle Shop - สั่งก๋วยเตี๋ยวออนไลน์</title>
     
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Pridi:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
         * {
@@ -119,11 +122,11 @@
             animation: spin 1s linear infinite;
         }
         
-        /* Stagger animation delays */
         .delay-1 { animation-delay: 0.1s; opacity: 0; }
         .delay-2 { animation-delay: 0.2s; opacity: 0; }
         .delay-3 { animation-delay: 0.3s; opacity: 0; }
         .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .delay-5 { animation-delay: 0.5s; opacity: 0; }
         
         /* Custom shadows */
         .shadow-warm {
@@ -178,16 +181,11 @@
         }
         
         /* Custom radio and checkbox */
-        .custom-radio:checked + label {
+        .custom-radio:checked + label,
+        .custom-checkbox:checked + label {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
             border-color: #d97706;
-        }
-        
-        .custom-checkbox:checked + label {
-            background: #fef3c7;
-            border-color: #d97706;
-            color: #92400e;
         }
         
         /* Hide scrollbar but keep functionality */
@@ -199,23 +197,54 @@
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
         }
+        
+        /* Line clamp */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Image loading shimmer */
+        .image-loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Main App Container -->
-    <div id="app" class="max-w-md mx-auto">
+    <div id="app" class="max-w-md mx-auto relative">
         
         <!-- Header -->
         <header class="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-6 shadow-warm-lg sticky top-0 z-40 animate-slide-up">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-display font-bold">🍜 Beauty Noodle</h1>
-                    <p class="text-amber-100 text-sm mt-1">ก่วยเตี๋ยวรสเด็ด</p>
+                    <p class="text-amber-100 text-sm mt-1">ก๋วยเตี๋ยวรสเด็ด ส่งถึงที่</p>
                 </div>
                 <div id="shopStatus" class="text-right">
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                        <span class="text-sm font-semibold">เปิดทำการ</span>
+                        <span class="text-sm font-semibold">กำลังโหลด...</span>
                     </div>
                 </div>
             </div>
@@ -232,19 +261,18 @@
             <div class="text-8xl mb-6">😴</div>
             <h2 class="text-3xl font-display font-bold text-amber-900 mb-3">ร้านปิดแล้วค่ะ</h2>
             <p class="text-amber-700 text-lg">กรุณากลับมาใหม่ในเวลาทำการ</p>
-            <div class="mt-8 bg-white rounded-2xl p-6 shadow-warm">
-                <p class="font-semibold text-amber-900 mb-2">เวลาทำการ</p>
-                <p class="text-amber-700">จันทร์ - ศุกร์: 08:00 - 16:00</p>
-                <p class="text-amber-700">เสาร์ - อาทิตย์: 09:00 - 15:00</p>
+            <div class="mt-8 bg-white rounded-2xl p-6 shadow-warm w-full">
+                <p class="font-semibold text-amber-900 mb-2">⏰ เวลาทำการ</p>
+                <p class="text-amber-700">จันทร์ - ศุกร์: 08:00 - 20:00</p>
+                <p class="text-amber-700">เสาร์ - อาทิตย์: 09:00 - 18:00</p>
+                <p class="text-amber-700 mt-4">📞 โทร: 081-234-5678</p>
             </div>
         </div>
 
         <!-- Category Tabs -->
         <div id="categoryTabs" class="hidden bg-white shadow-md sticky top-[88px] z-30 px-4 py-3 animate-slide-up delay-1">
-            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <button onclick="filterCategory('all')" class="category-tab px-6 py-2 rounded-full whitespace-nowrap font-semibold transition-all bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md">
-                    ทั้งหมด
-                </button>
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="categoryContainer">
+                <!-- Categories will be inserted here -->
             </div>
         </div>
 
@@ -263,12 +291,10 @@
         <!-- Sticky Cart Footer -->
         <div id="cartFooter" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-amber-200 shadow-warm-lg z-50 animate-slide-up">
             <div class="max-w-md mx-auto px-4 py-4">
-                <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="relative">
-                            <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
+                            <i class="fas fa-shopping-cart text-3xl text-amber-600"></i>
                             <span id="cartCount" class="cart-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
                         </div>
                         <div>
@@ -277,7 +303,7 @@
                         </div>
                     </div>
                     <button onclick="goToCheckout()" class="btn-press bg-gradient-to-r from-amber-600 to-orange-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-warm hover:shadow-warm-lg transition-all">
-                        ชำระเงิน →
+                        ชำระเงิน <i class="fas fa-chevron-right ml-2"></i>
                     </button>
                 </div>
             </div>
@@ -291,15 +317,21 @@
         <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto relative animate-scale-in shadow-warm-lg">
             <div class="sticky top-0 bg-gradient-to-r from-amber-600 to-orange-600 text-white p-6 rounded-t-3xl z-10">
                 <button onclick="closeMenuModal()" class="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+                    <i class="fas fa-times text-xl"></i>
                 </button>
                 <h2 id="modalMenuName" class="text-2xl font-display font-bold pr-10">เมนู</h2>
                 <p id="modalMenuPrice" class="text-amber-100 text-lg mt-1">0 ฿</p>
             </div>
             
             <div class="p-6">
+                <!-- Menu Image -->
+                <div id="modalMenuImage" class="mb-6 rounded-xl overflow-hidden h-48 bg-amber-50">
+                    <img id="modalImageTag" src="" alt="" class="w-full h-full object-cover">
+                </div>
+                
+                <!-- Menu Description -->
+                <p id="modalMenuDesc" class="text-amber-700 mb-6"></p>
+                
                 <div id="modalOptions" class="space-y-6">
                     <!-- Options will be inserted here -->
                 </div>
@@ -308,16 +340,17 @@
                     <label class="block text-sm font-semibold text-amber-900 mb-2">จำนวน</label>
                     <div class="flex items-center justify-center gap-4">
                         <button onclick="decreaseQuantity()" class="btn-press w-12 h-12 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl font-bold text-xl transition-colors">
-                            −
+                            <i class="fas fa-minus"></i>
                         </button>
                         <span id="modalQuantity" class="text-3xl font-bold text-amber-900 w-16 text-center">1</span>
                         <button onclick="increaseQuantity()" class="btn-press w-12 h-12 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl font-bold text-xl transition-colors">
-                            +
+                            <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
                 
                 <button onclick="addToCart()" class="btn-press w-full mt-6 bg-gradient-to-r from-amber-600 to-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-warm hover:shadow-warm-lg transition-all">
+                    <i class="fas fa-cart-plus mr-2"></i>
                     <span id="addToCartText">เพิ่มลงตะกร้า</span>
                 </button>
             </div>
@@ -331,9 +364,7 @@
             <div class="bg-white rounded-3xl max-w-md w-full relative animate-scale-in shadow-warm-lg">
                 <div class="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-6 rounded-t-3xl">
                     <button onclick="closeCheckout()" class="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+                        <i class="fas fa-times text-xl"></i>
                     </button>
                     <h2 class="text-2xl font-display font-bold">ตรวจสอบรายการ</h2>
                 </div>
@@ -351,25 +382,26 @@
                         
                         <div class="space-y-4 mt-6">
                             <div>
-                                <label class="block text-sm font-semibold text-amber-900 mb-2">ประเภทออเดอร์</label>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">🍽️ ประเภทออเดอร์</label>
                                 <select id="orderType" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none font-semibold text-amber-900">
-                                    <option value="dine-in">🍽️ ทานที่ร้าน</option>
-                                    <option value="takeaway">📦 ซื้อกลับ</option>
+                                    <option value="dine-in">ทานที่ร้าน</option>
+                                    <option value="takeaway">ซื้อกลับบ้าน</option>
+                                    <option value="delivery">จัดส่ง</option>
                                 </select>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-amber-900 mb-2">วิธีชำระเงิน</label>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">💳 วิธีชำระเงิน</label>
                                 <select id="paymentMethod" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none font-semibold text-amber-900">
-                                    <option value="cash">💵 เงินสด</option>
-                                    <option value="qr-code">📱 QR Code</option>
-                                    <option value="transfer">🏦 โอนเงิน</option>
+                                    <option value="cash">เงินสด</option>
+                                    <option value="qr-code">สแกน QR Code</option>
+                                    <option value="transfer">โอนเงิน</option>
                                 </select>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-amber-900 mb-2">หมายเหตุถึงร้าน (ถ้ามี)</label>
-                                <textarea id="orderNote" rows="3" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none resize-none" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย..."></textarea>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">📝 หมายเหตุถึงร้าน</label>
+                                <textarea id="orderNote" rows="3" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none resize-none" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย, เพิ่มผัก..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -377,7 +409,8 @@
                 
                 <div class="p-6 border-t-2 border-amber-200">
                     <button onclick="confirmOrder()" class="btn-press w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-2xl font-bold text-lg shadow-warm hover:shadow-warm-lg transition-all">
-                        ✓ ยืนยันการสั่งซื้อ
+                        <i class="fas fa-check-circle mr-2"></i>
+                        ยืนยันการสั่งซื้อ
                     </button>
                 </div>
             </div>
@@ -409,13 +442,19 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg z-[70] hidden animate-fade-in">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="toastMessage">เพิ่มลงตะกร้าแล้ว!</span>
+    </div>
+
     <script>
         // ============================================================================
         // CONFIGURATION
         // ============================================================================
         
         // 🔧 IMPORTANT: Replace with your Google Apps Script Web App URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0myjdh6Z1FQoTyknlGRJd0uwQhUT7P6uBacy-yoWUqoP8qmWO6PvVhKTHtnO_0o73jw/exec';
+         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0myjdh6Z1FQoTyknlGRJd0uwQhUT7P6uBacy-yoWUqoP8qmWO6PvVhKTHtnO_0o73jw/exec';
         
         // ============================================================================
         // STATE MANAGEMENT
@@ -428,12 +467,20 @@
         let selectedQuantity = 1;
         let selectedOptions = {};
         let isShopOpen = true;
+        let userId = '';
         
         // ============================================================================
         // INITIALIZATION
         // ============================================================================
         
         document.addEventListener('DOMContentLoaded', async () => {
+            // Generate or get user ID
+            userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = 'USER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('userId', userId);
+            }
+            
             await loadInitialData();
         });
         
@@ -450,11 +497,8 @@
                 
                 // Check shop status
                 if (statusResult.success && statusResult.data) {
-                    // ใช้ค่าสถานะจาก Config เป็นหลักเท่านั้น (ไม่อิงเวลาจากเครื่องผู้ใช้)
-                    isShopOpen = typeof statusResult.data.isOpenByConfig === 'boolean'
-                        ? statusResult.data.isOpenByConfig
-                        : statusResult.data.isOpen;
-                    updateShopStatus({ isOpen: isShopOpen });
+                    isShopOpen = statusResult.data.isOpenByConfig || statusResult.data.isOpen;
+                    updateShopStatus(statusResult.data);
                 }
                 
                 // Load menu
@@ -479,7 +523,7 @@
                 
             } catch (error) {
                 console.error('Error loading data:', error);
-                showError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบ SCRIPT_URL ในโค้ด');
+                showError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ');
             }
         }
         
@@ -512,16 +556,17 @@
         }
         
         function renderCategoryTabs() {
-            const tabsContainer = document.querySelector('#categoryTabs .flex');
+            const container = document.getElementById('categoryContainer');
             
-            const categoryButtons = categories.map(cat => {
+            const categoryButtons = categories.map((cat, index) => {
                 const displayName = cat === 'all' ? 'ทั้งหมด' : cat;
                 const isActive = cat === 'all';
+                const delay = index + 1;
                 
                 return `
                     <button 
                         onclick="filterCategory('${cat}')" 
-                        class="category-tab px-6 py-2 rounded-full whitespace-nowrap font-semibold transition-all ${
+                        class="category-tab px-6 py-2 rounded-full whitespace-nowrap font-semibold transition-all animate-fade-in delay-${delay} ${
                             isActive 
                                 ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md' 
                                 : 'bg-amber-50 text-amber-900 hover:bg-amber-100'
@@ -532,7 +577,7 @@
                 `;
             }).join('');
             
-            tabsContainer.innerHTML = categoryButtons;
+            container.innerHTML = categoryButtons;
         }
         
         function filterCategory(category) {
@@ -566,28 +611,61 @@
                 return;
             }
             
-            const menuCards = items.map((item, index) => `
-                <div class="menu-card bg-white rounded-2xl shadow-warm overflow-hidden cursor-pointer animate-slide-up delay-${(index % 4) + 1}" 
-                     onclick='openMenuModal(${JSON.stringify(item).replace(/'/g, "\\'")})'>
-                    <div class="p-5">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-display font-bold text-amber-900 mb-1">${item.name}</h3>
-                                <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">
-                                    ${item.category}
-                                </span>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-2xl font-bold gradient-text">${item.price}</p>
-                                <p class="text-sm text-amber-700">฿</p>
-                            </div>
+            const menuCards = items.map((item, index) => {
+                const imageUrl = item.imageUrl || 'https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle';
+                const delay = (index % 5) + 1;
+                
+                return `
+                    <div class="menu-card bg-white rounded-2xl shadow-warm overflow-hidden cursor-pointer animate-slide-up delay-${delay}" 
+                         onclick='openMenuModal(${JSON.stringify(item).replace(/'/g, "\\'")})'>
+                        
+                        <!-- รูปภาพเมนู -->
+                        <div class="relative h-48 overflow-hidden bg-amber-50">
+                            <img 
+                                src="${imageUrl}" 
+                                alt="${item.name}"
+                                class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                                loading="lazy"
+                                onerror="this.src='https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle'"
+                            >
+                            <!-- หมวดหมู่ badge -->
+                            <span class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-sm text-amber-800 text-xs font-semibold rounded-full shadow-md">
+                                <i class="fas fa-tag mr-1"></i>${item.category}
+                            </span>
+                            <!-- ราคา badge -->
+                            <span class="absolute top-3 right-3 px-3 py-1 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full shadow-md">
+                                ฿${item.price}
+                            </span>
                         </div>
-                        <button class="w-full mt-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all">
-                            + เพิ่มลงตะกร้า
-                        </button>
+                        
+                        <div class="p-5">
+                            <h3 class="text-xl font-display font-bold text-amber-900 mb-2 line-clamp-2">${item.name}</h3>
+                            
+                            <!-- คำอธิบาย -->
+                            ${item.description ? `
+                                <p class="text-sm text-amber-600 mb-3 line-clamp-2">${item.description}</p>
+                            ` : ''}
+                            
+                            <!-- แสดงตัวเลือกคร่าวๆ -->
+                            ${item.options && item.options.length > 0 ? `
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    ${item.options.slice(0, 2).map(opt => `
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">
+                                            <i class="fas fa-check-circle mr-1"></i>${opt.name}
+                                        </span>
+                                    `).join('')}
+                                    ${item.options.length > 2 ? '<span class="text-xs text-amber-500">+เพิ่มเติม</span>' : ''}
+                                </div>
+                            ` : ''}
+                            
+                            <button class="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                                <i class="fas fa-cart-plus mr-2"></i>
+                                เพิ่มลงตะกร้า
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             menuGrid.innerHTML = menuCards;
         }
@@ -598,7 +676,7 @@
         
         function openMenuModal(menuItem) {
             if (!isShopOpen) {
-                alert('ร้านปิดทำการแล้วค่ะ');
+                showToast('⚠️ ร้านปิดทำการแล้ว', 'error');
                 return;
             }
             
@@ -609,7 +687,19 @@
             // Set menu info
             document.getElementById('modalMenuName').textContent = menuItem.name;
             document.getElementById('modalMenuPrice').textContent = `${menuItem.price} ฿`;
+            document.getElementById('modalMenuDesc').textContent = menuItem.description || '';
             document.getElementById('modalQuantity').textContent = '1';
+            
+            // Set menu image
+            const modalImage = document.getElementById('modalImageTag');
+            if (menuItem.imageUrl) {
+                modalImage.src = menuItem.imageUrl;
+                modalImage.onerror = function() {
+                    this.src = 'https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle';
+                };
+            } else {
+                modalImage.src = 'https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle';
+            }
             
             // Render options
             renderMenuOptions(menuItem.options || []);
@@ -623,20 +713,20 @@
             const optionsContainer = document.getElementById('modalOptions');
             
             if (!options || options.length === 0) {
-                optionsContainer.innerHTML = '<p class="text-center text-amber-700">ไม่มีตัวเลือกเพิ่มเติม</p>';
+                optionsContainer.innerHTML = '<p class="text-center text-amber-700 py-4">ไม่มีตัวเลือกเพิ่มเติม</p>';
                 return;
             }
             
             const optionsHtml = options.map((option, optionIndex) => {
-                const isRadio = option.type === 'noodle' || option.choices.length <= 4;
+                const isRadio = option.type === 'noodle' || option.type === 'spice' || option.choices.length <= 4;
                 const inputType = isRadio ? 'radio' : 'checkbox';
                 const inputName = `option-${optionIndex}`;
                 
                 const choicesHtml = option.choices.map((choice, choiceIndex) => {
                     const inputId = `${inputName}-${choiceIndex}`;
-                    const price = choice.match(/\+(\d+)/);
-                    const displayChoice = choice.replace(/\s*\+\d+/, '');
-                    const priceText = price ? `<span class="text-amber-600 font-semibold ml-2">+${price[1]}฿</span>` : '';
+                    const priceMatch = choice.match(/\+(\d+)/);
+                    const displayChoice = choice.replace(/\s*\+\d+\s*฿?/, '').trim();
+                    const priceText = priceMatch ? ` +${priceMatch[1]}฿` : '';
                     
                     return `
                         <div>
@@ -652,7 +742,8 @@
                                 for="${inputId}" 
                                 class="block px-4 py-3 border-2 border-amber-200 rounded-xl cursor-pointer transition-all hover:border-amber-400 font-semibold text-amber-900"
                             >
-                                ${displayChoice}${priceText}
+                                ${displayChoice}
+                                ${priceText ? `<span class="text-amber-600 font-bold">${priceText}</span>` : ''}
                             </label>
                         </div>
                     `;
@@ -661,7 +752,8 @@
                 return `
                     <div>
                         <label class="block text-sm font-semibold text-amber-900 mb-3">
-                            ${option.name}${isRadio ? ' (เลือก 1)' : ' (เลือกได้หลายอย่าง)'}
+                            <i class="fas fa-${isRadio ? 'dot-circle' : 'check-square'} mr-2"></i>
+                            ${option.name} ${isRadio ? '(เลือก 1)' : '(เลือกได้หลายอย่าง)'}
                         </label>
                         <div class="grid grid-cols-2 gap-3">
                             ${choicesHtml}
@@ -692,13 +784,33 @@
         function increaseQuantity() {
             selectedQuantity++;
             document.getElementById('modalQuantity').textContent = selectedQuantity;
+            updateAddToCartPrice();
         }
         
         function decreaseQuantity() {
             if (selectedQuantity > 1) {
                 selectedQuantity--;
                 document.getElementById('modalQuantity').textContent = selectedQuantity;
+                updateAddToCartPrice();
             }
+        }
+        
+        function updateAddToCartPrice() {
+            if (!selectedMenu) return;
+            
+            let totalPrice = selectedMenu.price * selectedQuantity;
+            
+            // Add options price
+            Object.values(selectedOptions).forEach(opts => {
+                opts.forEach(opt => {
+                    const match = opt.match(/\+(\d+)/);
+                    if (match) {
+                        totalPrice += parseInt(match[1]) * selectedQuantity;
+                    }
+                });
+            });
+            
+            document.getElementById('addToCartText').textContent = `เพิ่มลงตะกร้า ${totalPrice} ฿`;
         }
         
         function addToCart() {
@@ -731,7 +843,6 @@
             updateCartDisplay();
             closeMenuModal();
             
-            // Show success feedback
             showToast('เพิ่มลงตะกร้าแล้ว!');
         }
         
@@ -760,7 +871,10 @@
         }
         
         function goToCheckout() {
-            if (cart.length === 0) return;
+            if (cart.length === 0) {
+                showToast('กรุณาเลือกเมนูก่อน', 'warning');
+                return;
+            }
             
             renderCheckoutItems();
             document.getElementById('checkoutModal').classList.remove('hidden');
@@ -775,20 +889,19 @@
             checkoutTotal.textContent = `${total} ฿`;
             
             const itemsHtml = cart.map((item, index) => `
-                <div class="bg-amber-50 rounded-xl p-4">
-                    <div class="flex justify-between items-start mb-2">
+                <div class="bg-amber-50 rounded-xl p-4 relative">
+                    <button onclick="removeFromCart(${index})" class="absolute top-2 right-2 text-red-500 hover:text-red-700 p-2">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <div class="flex justify-between items-start mb-2 pr-8">
                         <div class="flex-1">
                             <h4 class="font-bold text-amber-900">${item.name}</h4>
                             <p class="text-sm text-amber-700">จำนวน: ${item.quantity}</p>
                         </div>
-                        <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 p-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
                     </div>
                     ${item.options.length > 0 ? `
                         <div class="text-sm text-amber-600 mb-2">
+                            <i class="fas fa-tags mr-1"></i>
                             ${item.options.map(opt => opt.replace(/\+\d+/, '')).join(', ')}
                         </div>
                     ` : ''}
@@ -840,10 +953,11 @@
                 
                 const orderData = {
                     action: 'saveOrder',
-                    userId: 'Guest',
+                    userId: userId,
                     items: items,
                     type: orderType,
-                    payment: paymentMethod
+                    payment: paymentMethod,
+                    note: orderNote
                 };
                 
                 // Send to backend
@@ -869,6 +983,10 @@
                     // Show success modal
                     document.getElementById('orderIdDisplay').textContent = result.data.orderId;
                     document.getElementById('successModal').classList.remove('hidden');
+                    
+                    // Save to localStorage
+                    saveOrderToHistory(result.data);
+                    
                 } else {
                     throw new Error(result.message || 'เกิดข้อผิดพลาด');
                 }
@@ -876,15 +994,25 @@
             } catch (error) {
                 console.error('Error submitting order:', error);
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                alert('ไม่สามารถส่งออเดอร์ได้ กรุณาลองใหม่อีกครั้ง');
+                showToast('ไม่สามารถส่งออเดอร์ได้ กรุณาลองใหม่', 'error');
             }
+        }
+        
+        function saveOrderToHistory(orderData) {
+            let history = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+            history.unshift({
+                orderId: orderData.orderId,
+                totalPrice: orderData.totalPrice,
+                timestamp: new Date().toISOString(),
+                items: cart.length
+            });
+            history = history.slice(0, 10); // Keep last 10 orders
+            localStorage.setItem('orderHistory', JSON.stringify(history));
         }
         
         function closeSuccessModal() {
             document.getElementById('successModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
-            
-            // Reset form
             document.getElementById('orderNote').value = '';
         }
         
@@ -892,34 +1020,73 @@
         // UTILITIES
         // ============================================================================
         
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed top-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg z-[70] animate-fade-in';
-            toast.textContent = message;
-            document.body.appendChild(toast);
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            if (type === 'error') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-red-600');
+            } else if (type === 'warning') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-yellow-600');
+            } else {
+                toast.classList.remove('bg-red-600', 'bg-yellow-600');
+                toast.classList.add('bg-green-600');
+            }
+            
+            toast.classList.remove('hidden');
             
             setTimeout(() => {
-                toast.remove();
+                toast.classList.add('hidden');
             }, 2000);
         }
         
         function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'fixed top-24 left-4 right-4 max-w-md mx-auto bg-red-100 border-2 border-red-400 text-red-800 px-6 py-4 rounded-2xl shadow-lg z-[70] animate-fade-in';
-            errorDiv.innerHTML = `
-                <div class="flex items-start gap-3">
-                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p class="flex-1 font-semibold">${message}</p>
-                </div>
-            `;
-            document.body.appendChild(errorDiv);
-            
-            setTimeout(() => {
-                errorDiv.remove();
-            }, 5000);
+            showToast(message, 'error');
         }
+        
+        // ============================================================================
+        // ADDITIONAL FEATURES
+        // ============================================================================
+        
+        // Search functionality (optional)
+        function searchMenu(query) {
+            if (!query) {
+                renderMenu(menuData);
+                return;
+            }
+            
+            const filtered = menuData.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase()) ||
+                (item.description && item.description.toLowerCase().includes(query.toLowerCase()))
+            );
+            
+            renderMenu(filtered);
+        }
+        
+        // Load order history (optional)
+        function loadOrderHistory() {
+            const history = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+            console.log('Order history:', history);
+            return history;
+        }
+        
+        // Export functions to global scope
+        window.filterCategory = filterCategory;
+        window.openMenuModal = openMenuModal;
+        window.closeMenuModal = closeMenuModal;
+        window.increaseQuantity = increaseQuantity;
+        window.decreaseQuantity = decreaseQuantity;
+        window.addToCart = addToCart;
+        window.goToCheckout = goToCheckout;
+        window.removeFromCart = removeFromCart;
+        window.closeCheckout = closeCheckout;
+        window.confirmOrder = confirmOrder;
+        window.closeSuccessModal = closeSuccessModal;
+        window.showToast = showToast;
     </script>
 </body>
 </html>
