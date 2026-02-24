@@ -812,15 +812,16 @@
             try {
                 updateConnectionStatus('loading', 'กำลังส่งข้อมูล...');
                 
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
+               const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 
+        // เปลี่ยนตรงนี้เป็น text/plain เพื่อเลี่ยง CORS Preflight ของ Apps Script
+        'Content-Type': 'text/plain;charset=utf-8',
+        'Accept': 'application/json'
+    },
+    body: JSON.stringify(data)
+});
                 
                 if (response.ok) {
                     const result = await response.json();
