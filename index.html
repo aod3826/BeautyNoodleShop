@@ -206,31 +206,78 @@
             overflow: hidden;
         }
         
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+        /* Toast notification */
+        #toast {
+            transition: all 0.3s ease;
         }
         
-        /* Image loading shimmer */
-        .image-loading {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #d97706;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
         }
         
-        @keyframes loading {
-            0% {
-                background-position: 200% 0;
+        /* Error screen */
+        .error-screen {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
+        }
+        
+        /* Connection status */
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        
+        .status-dot.online {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.offline {
+            background: #ef4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
             }
-            100% {
-                background-position: -200% 0;
+            50% {
+                opacity: 0.5;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Connection Status -->
+    <div class="connection-status">
+        <span class="status-dot offline" id="statusDot"></span>
+        <span id="statusText">กำลังเชื่อมต่อ...</span>
+    </div>
+
     <!-- Main App Container -->
     <div id="app" class="max-w-md mx-auto relative">
         
@@ -248,12 +295,19 @@
                     </div>
                 </div>
             </div>
+            <div class="mt-2 text-xs text-amber-100" id="shopHours"></div>
         </header>
 
         <!-- Loading State -->
         <div id="loadingScreen" class="flex flex-col items-center justify-center py-20 animate-fade-in">
-            <div class="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-            <p class="mt-4 text-amber-900 font-semibold">กำลังโหลดเมนู...</p>
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-amber-900 font-semibold">กำลังโหลดเมนู...</p>
+            <p class="text-xs text-gray-500 mt-2" id="loadingDetail">กำลังเชื่อมต่อกับเซิร์ฟเวอร์...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorScreen" class="hidden">
+            <!-- จะถูกสร้างโดย JavaScript -->
         </div>
 
         <!-- Shop Closed State -->
@@ -263,22 +317,24 @@
             <p class="text-amber-700 text-lg">กรุณากลับมาใหม่ในเวลาทำการ</p>
             <div class="mt-8 bg-white rounded-2xl p-6 shadow-warm w-full">
                 <p class="font-semibold text-amber-900 mb-2">⏰ เวลาทำการ</p>
-                <p class="text-amber-700">จันทร์ - ศุกร์: 08:00 - 20:00</p>
-                <p class="text-amber-700">เสาร์ - อาทิตย์: 09:00 - 18:00</p>
-                <p class="text-amber-700 mt-4">📞 โทร: 081-234-5678</p>
+                <p id="closedShopHours" class="text-amber-700">จันทร์ - อาทิตย์: 08:00 - 20:00</p>
+                <p class="text-amber-700 mt-4">📞 <span id="closedPhone">081-234-5678</span></p>
             </div>
+            <button onclick="location.reload()" class="mt-4 bg-amber-600 text-white px-6 py-2 rounded-lg">
+                ลองใหม่
+            </button>
         </div>
 
         <!-- Category Tabs -->
         <div id="categoryTabs" class="hidden bg-white shadow-md sticky top-[88px] z-30 px-4 py-3 animate-slide-up delay-1">
             <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="categoryContainer">
-                <!-- Categories will be inserted here -->
+                <!-- Categories will be inserted by JavaScript -->
             </div>
         </div>
 
         <!-- Menu Grid -->
         <div id="menuGrid" class="hidden px-4 py-6 grid grid-cols-1 gap-4 animate-slide-up delay-2">
-            <!-- Menu items will be inserted here -->
+            <!-- Menu items will be inserted by JavaScript -->
         </div>
 
         <!-- Empty Cart State -->
@@ -333,7 +389,7 @@
                 <p id="modalMenuDesc" class="text-amber-700 mb-6"></p>
                 
                 <div id="modalOptions" class="space-y-6">
-                    <!-- Options will be inserted here -->
+                    <!-- Options will be inserted by JavaScript -->
                 </div>
                 
                 <div class="mt-6">
@@ -371,7 +427,7 @@
                 
                 <div class="p-6 max-h-[60vh] overflow-y-auto">
                     <div id="checkoutItems" class="space-y-4">
-                        <!-- Cart items will be inserted here -->
+                        <!-- Cart items will be inserted by JavaScript -->
                     </div>
                     
                     <div class="mt-6 pt-6 border-t-2 border-amber-200">
@@ -386,7 +442,6 @@
                                 <select id="orderType" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none font-semibold text-amber-900">
                                     <option value="dine-in">ทานที่ร้าน</option>
                                     <option value="takeaway">ซื้อกลับบ้าน</option>
-                                    <option value="delivery">จัดส่ง</option>
                                 </select>
                             </div>
                             
@@ -394,14 +449,14 @@
                                 <label class="block text-sm font-semibold text-amber-900 mb-2">💳 วิธีชำระเงิน</label>
                                 <select id="paymentMethod" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none font-semibold text-amber-900">
                                     <option value="cash">เงินสด</option>
-                                    <option value="qr-code">สแกน QR Code</option>
+                                    <option value="qr-code">พร้อมเพย์</option>
                                     <option value="transfer">โอนเงิน</option>
                                 </select>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-amber-900 mb-2">📝 หมายเหตุถึงร้าน</label>
-                                <textarea id="orderNote" rows="3" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none resize-none" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย, เพิ่มผัก..."></textarea>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">📝 หมายเหตุ</label>
+                                <textarea id="orderNote" rows="3" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none resize-none" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -437,7 +492,7 @@
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="hidden fixed inset-0 modal-backdrop z-[60] flex items-center justify-center">
         <div class="bg-white rounded-3xl p-8 text-center shadow-warm-lg animate-scale-in">
-            <div class="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="spinner mx-auto mb-4"></div>
             <p class="text-amber-900 font-bold text-lg">กำลังดำเนินการ...</p>
         </div>
     </div>
@@ -448,18 +503,18 @@
         <span id="toastMessage">เพิ่มลงตะกร้าแล้ว!</span>
     </div>
 
+    <!-- ============================================================================ -->
+    <!-- JAVASCRIPT - ควบคุมการทำงานทั้งหมด พร้อม JSONP Support -->
+    <!-- ============================================================================ -->
     <script>
         // ============================================================================
-        // CONFIGURATION
+        // CONFIGURATION - แก้ไข URL นี้ให้ตรงกับ Web App ของคุณ
         // ============================================================================
-        
-        // 🔧 IMPORTANT: Replace with your Google Apps Script Web App URL
-         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0myjdh6Z1FQoTyknlGRJd0uwQhUT7P6uBacy-yoWUqoP8qmWO6PvVhKTHtnO_0o73jw/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec';
         
         // ============================================================================
         // STATE MANAGEMENT
         // ============================================================================
-        
         let menuData = [];
         let categories = [];
         let cart = [];
@@ -468,17 +523,189 @@
         let selectedOptions = {};
         let isShopOpen = true;
         let userId = '';
+        let shopInfo = {};
+        let connectionAttempts = 0;
+        const MAX_ATTEMPTS = 3;
+        
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+        function updateConnectionStatus(status, message) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (status === 'online') {
+                dot.className = 'status-dot online';
+                text.textContent = message || 'เชื่อมต่อแล้ว';
+            } else if (status === 'offline') {
+                dot.className = 'status-dot offline';
+                text.textContent = message || ' offline';
+            } else {
+                dot.className = 'status-dot offline';
+                text.textContent = message || 'กำลังเชื่อมต่อ...';
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            if (type === 'error') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-red-600');
+            } else if (type === 'warning') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-yellow-600');
+            } else {
+                toast.classList.remove('bg-red-600', 'bg-yellow-600');
+                toast.classList.add('bg-green-600');
+            }
+            
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2000);
+        }
+        
+        function showErrorScreen(error) {
+            const errorScreen = document.getElementById('errorScreen');
+            errorScreen.classList.remove('hidden');
+            errorScreen.innerHTML = `
+                <div class="error-screen">
+                    <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">เกิดข้อผิดพลาด!</h2>
+                    <p class="text-gray-600 mb-4">${error.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้'}</p>
+                    <p class="text-sm text-gray-500 mb-2">URL: ${SCRIPT_URL}</p>
+                    <p class="text-sm text-gray-500 mb-6">พยายามแล้ว: ${connectionAttempts} ครั้ง</p>
+                    <div class="space-y-3">
+                        <button onclick="location.reload()" 
+                                class="w-full bg-amber-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-700">
+                            <i class="fas fa-redo-alt mr-2"></i>ลองใหม่
+                        </button>
+                        <button onclick="window.location.href='${SCRIPT_URL}'" 
+                                class="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold hover:bg-gray-300">
+                            <i class="fas fa-external-link-alt mr-2"></i>เปิด URL โดยตรง
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ============================================================================
+        // JSONP FUNCTIONS - สำหรับ bypass CORS
+        // ============================================================================
+        function jsonp(url, callback) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    clearTimeout(timeout);
+                    resolve(data);
+                };
+                
+                const script = document.createElement('script');
+                script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+                
+                const timeout = setTimeout(() => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP timeout'));
+                }, 10000);
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    clearTimeout(timeout);
+                    reject(new Error('JSONP failed'));
+                };
+                
+                document.body.appendChild(script);
+            });
+        }
+        
+        // ============================================================================
+        // DATA FETCHING WITH FALLBACK
+        // ============================================================================
+        async function fetchWithFallback(action, params = {}) {
+            connectionAttempts++;
+            document.getElementById('loadingDetail').textContent = `กำลังเชื่อมต่อ... (ครั้งที่ ${connectionAttempts})`;
+            
+            const url = SCRIPT_URL + '?action=' + action + 
+                       Object.keys(params).map(key => '&' + key + '=' + encodeURIComponent(params[key])).join('');
+            
+            // ลอง fetch แบบปกติก่อน
+            try {
+                updateConnectionStatus('loading', 'กำลังเชื่อมต่อ...');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateConnectionStatus('online');
+                    connectionAttempts = 0;
+                    return data;
+                }
+                
+                throw new Error('Fetch failed');
+                
+            } catch (fetchError) {
+                console.log('Fetch failed, trying JSONP...', fetchError);
+                
+                // ลอง JSONP
+                try {
+                    updateConnectionStatus('loading', 'ใช้ JSONP...');
+                    const data = await jsonp(url, 'callback');
+                    updateConnectionStatus('online');
+                    connectionAttempts = 0;
+                    return data;
+                    
+                } catch (jsonpError) {
+                    console.log('JSONP failed', jsonpError);
+                    
+                    if (connectionAttempts >= MAX_ATTEMPTS) {
+                        updateConnectionStatus('offline', 'เชื่อมต่อล้มเหลว');
+                        throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+                    }
+                    
+                    // รอแล้วลองใหม่
+                    await new Promise(r => setTimeout(r, 2000));
+                    return fetchWithFallback(action, params);
+                }
+            }
+        }
         
         // ============================================================================
         // INITIALIZATION
         // ============================================================================
-        
         document.addEventListener('DOMContentLoaded', async () => {
-            // Generate or get user ID
+            console.log('🚀 App starting...');
+            console.log('📡 Script URL:', SCRIPT_URL);
+            
+            // Generate or get user ID from localStorage
             userId = localStorage.getItem('userId');
             if (!userId) {
                 userId = 'USER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('userId', userId);
+                console.log('🆕 New user created:', userId);
             }
             
             await loadInitialData();
@@ -486,27 +713,29 @@
         
         async function loadInitialData() {
             try {
-                // Fetch shop status and menu in parallel
-                const [statusResponse, menuResponse] = await Promise.all([
-                    fetch(`${SCRIPT_URL}?action=getShopStatus`),
-                    fetch(`${SCRIPT_URL}?action=getMenu`)
-                ]);
+                showLoading();
                 
-                const statusResult = await statusResponse.json();
-                const menuResult = await menuResponse.json();
+                // Load shop status
+                const statusResult = await fetchWithFallback('getShopStatus');
+                console.log('✅ Shop status:', statusResult);
                 
-                // Check shop status
-                if (statusResult.success && statusResult.data) {
-                    isShopOpen = statusResult.data.isOpenByConfig || statusResult.data.isOpen;
-                    updateShopStatus(statusResult.data);
+                if (statusResult && statusResult.success) {
+                    shopInfo = statusResult.data;
+                    isShopOpen = shopInfo.isOpen;
+                    updateShopStatus();
                 }
                 
                 // Load menu
-                if (menuResult.success && menuResult.data) {
-                    menuData = menuResult.data.menu;
-                    extractCategories();
-                    renderMenu();
-                    renderCategoryTabs();
+                const menuResult = await fetchWithFallback('getMenu');
+                console.log('✅ Menu:', menuResult);
+                
+                if (menuResult && menuResult.success && menuResult.data) {
+                    menuData = menuResult.data.menu || [];
+                    if (menuData.length > 0) {
+                        extractCategories();
+                        renderMenu();
+                        renderCategoryTabs();
+                    }
                 }
                 
                 // Hide loading screen
@@ -516,26 +745,39 @@
                 if (!isShopOpen) {
                     document.getElementById('closedScreen').classList.remove('hidden');
                     document.getElementById('closedScreen').classList.add('flex');
+                    document.getElementById('closedShopHours').textContent = 
+                        `${shopInfo.openTime || '08:00'} - ${shopInfo.closeTime || '20:00'} น.`;
+                    document.getElementById('closedPhone').textContent = shopInfo.phoneNumber || '081-234-5678';
                 } else {
                     document.getElementById('categoryTabs').classList.remove('hidden');
                     document.getElementById('menuGrid').classList.remove('hidden');
                 }
                 
+                // Load cart from localStorage
+                loadCart();
+                
+                hideLoading();
+                
             } catch (error) {
-                console.error('Error loading data:', error);
-                showError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ');
+                console.error('❌ Fatal error:', error);
+                document.getElementById('loadingScreen').classList.add('hidden');
+                showErrorScreen(error);
+                hideLoading();
             }
         }
         
-        function updateShopStatus(data) {
+        function updateShopStatus() {
             const statusEl = document.getElementById('shopStatus');
-            if (data.isOpen) {
+            const hoursEl = document.getElementById('shopHours');
+            
+            if (isShopOpen) {
                 statusEl.innerHTML = `
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                         <span class="text-sm font-semibold">เปิดทำการ</span>
                     </div>
                 `;
+                hoursEl.textContent = `⏰ ${shopInfo.openTime || '08:00'} - ${shopInfo.closeTime || '20:00'} น.`;
             } else {
                 statusEl.innerHTML = `
                     <div class="flex items-center gap-2">
@@ -543,13 +785,49 @@
                         <span class="text-sm font-semibold">ปิดทำการ</span>
                     </div>
                 `;
+                hoursEl.textContent = '';
             }
         }
         
         // ============================================================================
-        // MENU RENDERING
+        // CART FUNCTIONS
         // ============================================================================
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartDisplay();
+        }
         
+        function loadCart() {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                try {
+                    cart = JSON.parse(savedCart);
+                    updateCartDisplay();
+                } catch (e) {
+                    cart = [];
+                }
+            }
+        }
+        
+        function updateCartDisplay() {
+            const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+            
+            document.getElementById('cartCount').textContent = cartCount;
+            document.getElementById('cartTotal').textContent = `${cartTotal} ฿`;
+            
+            if (cartCount > 0) {
+                document.getElementById('cartFooter').classList.remove('hidden');
+                document.getElementById('emptyCart').classList.add('hidden');
+            } else {
+                document.getElementById('cartFooter').classList.add('hidden');
+                document.getElementById('emptyCart').classList.remove('hidden');
+            }
+        }
+        
+        // ============================================================================
+        // MENU FUNCTIONS
+        // ============================================================================
         function extractCategories() {
             const uniqueCategories = [...new Set(menuData.map(item => item.category))];
             categories = ['all', ...uniqueCategories];
@@ -581,7 +859,6 @@
         }
         
         function filterCategory(category) {
-            // Update active tab
             document.querySelectorAll('.category-tab').forEach(btn => {
                 btn.classList.remove('bg-gradient-to-r', 'from-amber-600', 'to-orange-600', 'text-white', 'shadow-md');
                 btn.classList.add('bg-amber-50', 'text-amber-900');
@@ -590,7 +867,6 @@
             event.target.classList.remove('bg-amber-50', 'text-amber-900');
             event.target.classList.add('bg-gradient-to-r', 'from-amber-600', 'to-orange-600', 'text-white', 'shadow-md');
             
-            // Filter and render menu
             const filteredMenu = category === 'all' 
                 ? menuData 
                 : menuData.filter(item => item.category === category);
@@ -619,7 +895,6 @@
                     <div class="menu-card bg-white rounded-2xl shadow-warm overflow-hidden cursor-pointer animate-slide-up delay-${delay}" 
                          onclick='openMenuModal(${JSON.stringify(item).replace(/'/g, "\\'")})'>
                         
-                        <!-- รูปภาพเมนู -->
                         <div class="relative h-48 overflow-hidden bg-amber-50">
                             <img 
                                 src="${imageUrl}" 
@@ -628,11 +903,9 @@
                                 loading="lazy"
                                 onerror="this.src='https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle'"
                             >
-                            <!-- หมวดหมู่ badge -->
                             <span class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-sm text-amber-800 text-xs font-semibold rounded-full shadow-md">
                                 <i class="fas fa-tag mr-1"></i>${item.category}
                             </span>
-                            <!-- ราคา badge -->
                             <span class="absolute top-3 right-3 px-3 py-1 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full shadow-md">
                                 ฿${item.price}
                             </span>
@@ -641,12 +914,10 @@
                         <div class="p-5">
                             <h3 class="text-xl font-display font-bold text-amber-900 mb-2 line-clamp-2">${item.name}</h3>
                             
-                            <!-- คำอธิบาย -->
                             ${item.description ? `
                                 <p class="text-sm text-amber-600 mb-3 line-clamp-2">${item.description}</p>
                             ` : ''}
                             
-                            <!-- แสดงตัวเลือกคร่าวๆ -->
                             ${item.options && item.options.length > 0 ? `
                                 <div class="flex flex-wrap gap-2 mb-4">
                                     ${item.options.slice(0, 2).map(opt => `
@@ -671,9 +942,8 @@
         }
         
         // ============================================================================
-        // MENU MODAL
+        // MENU MODAL FUNCTIONS
         // ============================================================================
-        
         function openMenuModal(menuItem) {
             if (!isShopOpen) {
                 showToast('⚠️ ร้านปิดทำการแล้ว', 'error');
@@ -684,13 +954,11 @@
             selectedQuantity = 1;
             selectedOptions = {};
             
-            // Set menu info
             document.getElementById('modalMenuName').textContent = menuItem.name;
             document.getElementById('modalMenuPrice').textContent = `${menuItem.price} ฿`;
             document.getElementById('modalMenuDesc').textContent = menuItem.description || '';
             document.getElementById('modalQuantity').textContent = '1';
             
-            // Set menu image
             const modalImage = document.getElementById('modalImageTag');
             if (menuItem.imageUrl) {
                 modalImage.src = menuItem.imageUrl;
@@ -701,10 +969,9 @@
                 modalImage.src = 'https://via.placeholder.com/400x300/fef3e2/d97706?text=Beauty+Noodle';
             }
             
-            // Render options
             renderMenuOptions(menuItem.options || []);
+            updateAddToCartPrice();
             
-            // Show modal
             document.getElementById('menuModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -779,6 +1046,8 @@
                     selectedOptions[optionType] = selectedOptions[optionType].filter(c => c !== choice);
                 }
             }
+            
+            updateAddToCartPrice();
         }
         
         function increaseQuantity() {
@@ -800,7 +1069,6 @@
             
             let totalPrice = selectedMenu.price * selectedQuantity;
             
-            // Add options price
             Object.values(selectedOptions).forEach(opts => {
                 opts.forEach(opt => {
                     const match = opt.match(/\+(\d+)/);
@@ -814,13 +1082,11 @@
         }
         
         function addToCart() {
-            // Collect all selected options
             const allSelectedOptions = [];
             Object.values(selectedOptions).forEach(opts => {
                 allSelectedOptions.push(...opts);
             });
             
-            // Calculate item price
             let itemPrice = selectedMenu.price;
             allSelectedOptions.forEach(option => {
                 const match = option.match(/\+(\d+)/);
@@ -829,7 +1095,6 @@
                 }
             });
             
-            // Add to cart
             const cartItem = {
                 menuId: selectedMenu.id,
                 name: selectedMenu.name,
@@ -840,9 +1105,8 @@
             };
             
             cart.push(cartItem);
-            updateCartDisplay();
+            saveCart();
             closeMenuModal();
-            
             showToast('เพิ่มลงตะกร้าแล้ว!');
         }
         
@@ -852,24 +1116,8 @@
         }
         
         // ============================================================================
-        // CART MANAGEMENT
+        // CHECKOUT FUNCTIONS
         // ============================================================================
-        
-        function updateCartDisplay() {
-            const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-            const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-            
-            document.getElementById('cartCount').textContent = cartCount;
-            document.getElementById('cartTotal').textContent = `${cartTotal} ฿`;
-            
-            if (cartCount > 0) {
-                document.getElementById('cartFooter').classList.remove('hidden');
-                document.getElementById('emptyCart').classList.add('hidden');
-            } else {
-                document.getElementById('cartFooter').classList.add('hidden');
-            }
-        }
-        
         function goToCheckout() {
             if (cart.length === 0) {
                 showToast('กรุณาเลือกเมนูก่อน', 'warning');
@@ -916,7 +1164,7 @@
         
         function removeFromCart(index) {
             cart.splice(index, 1);
-            updateCartDisplay();
+            saveCart();
             renderCheckoutItems();
             
             if (cart.length === 0) {
@@ -932,15 +1180,12 @@
         // ============================================================================
         // ORDER SUBMISSION
         // ============================================================================
-        
         async function confirmOrder() {
             if (cart.length === 0) return;
             
-            // Show loading
-            document.getElementById('loadingOverlay').classList.remove('hidden');
+            showLoading();
             
             try {
-                // Prepare order data
                 const orderType = document.getElementById('orderType').value;
                 const paymentMethod = document.getElementById('paymentMethod').value;
                 const orderNote = document.getElementById('orderNote').value;
@@ -960,31 +1205,36 @@
                     note: orderNote
                 };
                 
-                // Send to backend
+                console.log('📤 Sending order:', orderData);
+                
+                // ส่ง POST request
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                    mode: 'cors',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(orderData)
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
+                console.log('✅ Order response:', result);
                 
                 if (result.success) {
-                    // Clear cart
                     cart = [];
-                    updateCartDisplay();
+                    saveCart();
                     
-                    // Hide loading and checkout
-                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    hideLoading();
                     closeCheckout();
                     
-                    // Show success modal
                     document.getElementById('orderIdDisplay').textContent = result.data.orderId;
                     document.getElementById('successModal').classList.remove('hidden');
                     
-                    // Save to localStorage
                     saveOrderToHistory(result.data);
                     
                 } else {
@@ -992,8 +1242,8 @@
                 }
                 
             } catch (error) {
-                console.error('Error submitting order:', error);
-                document.getElementById('loadingOverlay').classList.add('hidden');
+                console.error('❌ Order error:', error);
+                hideLoading();
                 showToast('ไม่สามารถส่งออเดอร์ได้ กรุณาลองใหม่', 'error');
             }
         }
@@ -1003,10 +1253,9 @@
             history.unshift({
                 orderId: orderData.orderId,
                 totalPrice: orderData.totalPrice,
-                timestamp: new Date().toISOString(),
-                items: cart.length
+                timestamp: new Date().toISOString()
             });
-            history = history.slice(0, 10); // Keep last 10 orders
+            history = history.slice(0, 10);
             localStorage.setItem('orderHistory', JSON.stringify(history));
         }
         
@@ -1015,78 +1264,6 @@
             document.body.style.overflow = 'auto';
             document.getElementById('orderNote').value = '';
         }
-        
-        // ============================================================================
-        // UTILITIES
-        // ============================================================================
-        
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            
-            toastMessage.textContent = message;
-            
-            if (type === 'error') {
-                toast.classList.remove('bg-green-600');
-                toast.classList.add('bg-red-600');
-            } else if (type === 'warning') {
-                toast.classList.remove('bg-green-600');
-                toast.classList.add('bg-yellow-600');
-            } else {
-                toast.classList.remove('bg-red-600', 'bg-yellow-600');
-                toast.classList.add('bg-green-600');
-            }
-            
-            toast.classList.remove('hidden');
-            
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 2000);
-        }
-        
-        function showError(message) {
-            showToast(message, 'error');
-        }
-        
-        // ============================================================================
-        // ADDITIONAL FEATURES
-        // ============================================================================
-        
-        // Search functionality (optional)
-        function searchMenu(query) {
-            if (!query) {
-                renderMenu(menuData);
-                return;
-            }
-            
-            const filtered = menuData.filter(item => 
-                item.name.toLowerCase().includes(query.toLowerCase()) ||
-                (item.description && item.description.toLowerCase().includes(query.toLowerCase()))
-            );
-            
-            renderMenu(filtered);
-        }
-        
-        // Load order history (optional)
-        function loadOrderHistory() {
-            const history = JSON.parse(localStorage.getItem('orderHistory') || '[]');
-            console.log('Order history:', history);
-            return history;
-        }
-        
-        // Export functions to global scope
-        window.filterCategory = filterCategory;
-        window.openMenuModal = openMenuModal;
-        window.closeMenuModal = closeMenuModal;
-        window.increaseQuantity = increaseQuantity;
-        window.decreaseQuantity = decreaseQuantity;
-        window.addToCart = addToCart;
-        window.goToCheckout = goToCheckout;
-        window.removeFromCart = removeFromCart;
-        window.closeCheckout = closeCheckout;
-        window.confirmOrder = confirmOrder;
-        window.closeSuccessModal = closeSuccessModal;
-        window.showToast = showToast;
     </script>
 </body>
 </html>
