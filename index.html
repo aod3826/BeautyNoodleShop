@@ -1209,14 +1209,15 @@
                 
                 // ส่ง POST request
                 const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(orderData)
-                });
+    method: 'POST',
+    mode: 'cors', // เพิ่มหรือคงไว้เพื่อให้ส่งข้ามโดเมนได้
+    headers: {
+        // เปลี่ยนจาก application/json เป็น text/plain;charset=utf-8
+        'Content-Type': 'text/plain;charset=utf-8',
+        'Accept': 'application/json'
+    },
+    body: JSON.stringify(orderData) // ส่ง JSON string ไปเหมือนเดิม
+});
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
