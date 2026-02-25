@@ -786,13 +786,13 @@
     </audio>
 
     <!-- ============================================================================ -->
-    <!-- JAVASCRIPT - ควบคุมการทำงานทั้งหมด พร้อม JSONP Support -->
+    <!-- JAVASCRIPT - ควบคุมการทำงานทั้งหมด พร้อม JSONP Support และ CORS Fix -->
     <!-- ============================================================================ -->
     <script>
         // ============================================================================
         // CONFIGURATION
         // ============================================================================
-        const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec';
         
         // ============================================================================
         // STATE MANAGEMENT
@@ -1041,6 +1041,9 @@
             }
         }
         
+        // ============================================================================
+        // POST FUNCTION - แก้ไข CORS โดยใช้ text/plain
+        // ============================================================================
         async function postWithFallback(data) {
             connectionAttempts++;
             
@@ -1051,7 +1054,7 @@
                     method: 'POST',
                     mode: 'cors',
                     headers: { 
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain;charset=utf-8',  // แก้ไขเป็น text/plain เพื่อเลี่ยง CORS preflight
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify(data)
