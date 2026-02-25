@@ -1,9 +1,9 @@
 /**
- * Beauty Noodle Shop - Backend System (Complete Fixed Version with CORS)
+ * Beauty Noodle Shop - Backend System (Complete Version with New Features)
  * Google Apps Script Backend for Restaurant Management
  * 
  * @author Senior Backend Developer
- * @version 5.0.0
+ * @version 6.0.0
  */
 
 // ============================================================================
@@ -29,7 +29,7 @@ function initialSetup() {
   
   Logger.log('✅ Initial setup completed.');
   Logger.log('Spreadsheet ID: ' + spreadsheetId);
-  Logger.log('Admin Token (เก็บไว้ให้ดี!): ' + adminToken);
+  Logger.log('Admin Token: ' + adminToken);
   Logger.log('API Key: ' + apiKey);
 }
 
@@ -309,6 +309,18 @@ function doGet(e) {
         } else {
           result = getInventoryStatusData();
         }
+      } else if (action === 'adminGetAllMenus') {
+        if (!verifyAdminToken(e.parameter.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminGetAllMenus();
+        }
+      } else if (action === 'checkNewOrders') {
+        if (!verifyAdminToken(e.parameter.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = checkNewOrders(parseInt(e.parameter.lastCount) || 0);
+        }
       } else {
         result = { success: false, error: 'Invalid action' };
       }
@@ -359,7 +371,7 @@ function doPost(e) {
     let result;
     
     try {
-      // Customer endpoints (ไม่ต้องตรวจสอบ Token)
+      // Customer endpoints
       if (action === 'saveOrder') {
         result = saveOrderData(payload);
       } 
@@ -367,7 +379,7 @@ function doPost(e) {
       else if (action === 'adminLogin') {
         result = adminLogin(payload.username, payload.password);
       }
-      // Admin endpoints (ต้องมี token)
+      // Admin endpoints
       else if (action === 'adminUpdateOrderStatus') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
@@ -392,6 +404,44 @@ function doPost(e) {
         } else {
           result = adminAddInventoryItem(payload.itemData, payload.adminId);
         }
+      } 
+      // NEW: Shop Status Toggle
+      else if (action === 'adminToggleShopStatus') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminToggleShopStatus(payload.isOpen, payload.adminId);
+        }
+      }
+      // NEW: Menu Management
+      else if (action === 'adminAddMenu') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminAddMenu(payload.menuData, payload.adminId);
+        }
+      } else if (action === 'adminUpdateMenu') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminUpdateMenu(payload.menuData, payload.adminId);
+        }
+      }
+      // NEW: Quick Inventory Adjust
+      else if (action === 'adminQuickAdjustInventory') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminQuickAdjustInventory(payload.itemId, payload.change, payload.adminId);
+        }
+      }
+      // NEW: Check New Orders
+      else if (action === 'checkNewOrders') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = checkNewOrders(payload.lastCount || 0);
+        }
       } else {
         result = { success: false, error: 'Invalid action' };
       }
@@ -411,7 +461,7 @@ function doPost(e) {
 }
 
 // ============================================================================
-// DATA FUNCTIONS - แยก logic ออกจาก response
+// DATA FUNCTIONS
 // ============================================================================
 
 function getMenuData() {
@@ -690,7 +740,7 @@ function saveOrderData(orderData) {
     
     logAction('SAVE_ORDER', `Order ${orderId} created - Total: ${totalPrice}฿`, orderData.userId);
     
-    // ส่ง LINE Notification (แบบไม่ blocking)
+    // ส่ง LINE Notification
     try {
       const lineConfig = getLineConfig();
       if (lineConfig.accessToken && lineConfig.groupId) {
@@ -766,7 +816,8 @@ function getMenuItemsWithDetails() {
         price: parseFloat(row[priceIndex]) || 0,
         options: options,
         imageUrl: imageIndex !== -1 ? row[imageIndex] : null,
-        description: descIndex !== -1 ? row[descIndex] : ''
+        description: descIndex !== -1 ? row[descIndex] : '',
+        status: statusIndex !== -1 ? row[statusIndex] : 'active'
       });
     }
     
@@ -871,7 +922,7 @@ function getStockStatus(current, min) {
 
 function adminLogin(username, password) {
   const validUsername = 'admin';
-  const validPassword = '123';
+  const validPassword = 'beautynoodle123';
   
   if (username === validUsername && password === validPassword) {
     const token = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
@@ -1014,6 +1065,374 @@ function adminAddInventoryItem(itemData, adminId) {
 }
 
 // ============================================================================
+// NEW FEATURES - SHOP MANAGEMENT
+// ============================================================================
+
+/**
+ * Admin เปิด/ปิดร้าน
+ */
+function adminToggleShopStatus(isOpen, adminId = 'ADMIN') {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Config');
+    
+    if (!sheet) {
+      throw new Error('ไม่พบชีต Config');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    let foundRow = -1;
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === 'isOpen') {
+        foundRow = i + 1;
+        break;
+      }
+    }
+    
+    if (foundRow === -1) {
+      sheet.appendRow(['isOpen', isOpen]);
+    } else {
+      sheet.getRange(foundRow, 2).setValue(isOpen);
+    }
+    
+    logAction('ADMIN_TOGGLE_SHOP', `Shop status changed to: ${isOpen}`, adminId);
+    
+    return { 
+      success: true, 
+      data: { 
+        isOpen: isOpen === 'true' || isOpen === true 
+      } 
+    };
+    
+  } catch (error) {
+    logAction('ADMIN_TOGGLE_SHOP_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// MENU MANAGEMENT
+// ============================================================================
+
+/**
+ * Admin เพิ่มเมนูใหม่
+ */
+function adminAddMenu(menuData, adminId = 'ADMIN') {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menu');
+    
+    if (!sheet) {
+      throw new Error('ไม่พบชีต Menu');
+    }
+    
+    if (!menuData.id) {
+      const lastId = getLastMenuId();
+      const num = parseInt(lastId.replace('M', '')) + 1;
+      menuData.id = 'M' + num.toString().padStart(3, '0');
+    }
+    
+    if (!menuData.name || !menuData.category || !menuData.price) {
+      throw new Error('กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อ, หมวดหมู่, ราคา)');
+    }
+    
+    const optionsJson = menuData.options_json || '[]';
+    
+    const newRow = [
+      menuData.id,
+      menuData.name,
+      menuData.category,
+      parseFloat(menuData.price) || 0,
+      optionsJson,
+      menuData.status || 'active',
+      menuData.image_url || '',
+      menuData.description || '',
+      menuData.ingredients || ''
+    ];
+    
+    sheet.appendRow(newRow);
+    
+    logAction('ADMIN_ADD_MENU', `Added menu: ${menuData.name} (${menuData.id})`, adminId);
+    
+    return { 
+      success: true, 
+      data: { 
+        id: menuData.id,
+        name: menuData.name 
+      } 
+    };
+    
+  } catch (error) {
+    logAction('ADMIN_ADD_MENU_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin อัปเดตเมนู
+ */
+function adminUpdateMenu(menuData, adminId = 'ADMIN') {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menu');
+    
+    if (!sheet) {
+      throw new Error('ไม่พบชีต Menu');
+    }
+    
+    if (!menuData.id) {
+      throw new Error('กรุณาระบุ ID เมนู');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const rows = data.slice(1);
+    
+    const idIndex = headers.indexOf('id');
+    const nameIndex = headers.indexOf('name');
+    const categoryIndex = headers.indexOf('category');
+    const priceIndex = headers.indexOf('price');
+    const optionsIndex = headers.indexOf('options_json');
+    const statusIndex = headers.indexOf('status');
+    const imageIndex = headers.indexOf('image_url');
+    const descIndex = headers.indexOf('description');
+    const ingredientsIndex = headers.indexOf('ingredients');
+    
+    let foundRow = -1;
+    
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][idIndex] === menuData.id) {
+        foundRow = i + 2;
+        break;
+      }
+    }
+    
+    if (foundRow === -1) {
+      throw new Error(`ไม่พบเมนู ID: ${menuData.id}`);
+    }
+    
+    if (menuData.name !== undefined) {
+      sheet.getRange(foundRow, nameIndex + 1).setValue(menuData.name);
+    }
+    if (menuData.category !== undefined) {
+      sheet.getRange(foundRow, categoryIndex + 1).setValue(menuData.category);
+    }
+    if (menuData.price !== undefined) {
+      sheet.getRange(foundRow, priceIndex + 1).setValue(parseFloat(menuData.price) || 0);
+    }
+    if (menuData.options_json !== undefined) {
+      sheet.getRange(foundRow, optionsIndex + 1).setValue(menuData.options_json);
+    }
+    if (menuData.status !== undefined) {
+      sheet.getRange(foundRow, statusIndex + 1).setValue(menuData.status);
+    }
+    if (menuData.image_url !== undefined) {
+      sheet.getRange(foundRow, imageIndex + 1).setValue(menuData.image_url);
+    }
+    if (menuData.description !== undefined) {
+      sheet.getRange(foundRow, descIndex + 1).setValue(menuData.description);
+    }
+    if (menuData.ingredients !== undefined) {
+      sheet.getRange(foundRow, ingredientsIndex + 1).setValue(menuData.ingredients);
+    }
+    
+    logAction('ADMIN_UPDATE_MENU', `Updated menu: ${menuData.id}`, adminId);
+    
+    return { success: true, data: { id: menuData.id } };
+    
+  } catch (error) {
+    logAction('ADMIN_UPDATE_MENU_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ดึงรายการเมนูทั้งหมด (สำหรับ Admin)
+ */
+function adminGetAllMenus() {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menu');
+    
+    if (!sheet) {
+      return { success: true, data: { menu: [] } };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const rows = data.slice(1);
+    
+    const idIndex = headers.indexOf('id');
+    const nameIndex = headers.indexOf('name');
+    const categoryIndex = headers.indexOf('category');
+    const priceIndex = headers.indexOf('price');
+    const optionsIndex = headers.indexOf('options_json');
+    const statusIndex = headers.indexOf('status');
+    const imageIndex = headers.indexOf('image_url');
+    const descIndex = headers.indexOf('description');
+    const ingredientsIndex = headers.indexOf('ingredients');
+    
+    const menu = rows.map(row => ({
+      id: row[idIndex],
+      name: row[nameIndex] || '',
+      category: row[categoryIndex] || '',
+      price: parseFloat(row[priceIndex]) || 0,
+      options: row[optionsIndex] ? JSON.parse(row[optionsIndex] || '[]') : [],
+      options_json: row[optionsIndex] || '[]',
+      status: row[statusIndex] || 'active',
+      imageUrl: row[imageIndex] || '',
+      description: row[descIndex] || '',
+      ingredients: row[ingredientsIndex] || ''
+    }));
+    
+    return { 
+      success: true, 
+      data: { 
+        menu: menu,
+        total: menu.length 
+      } 
+    };
+  } catch (error) {
+    logAction('ADMIN_GET_MENUS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * หา ID เมนูล่าสุด
+ */
+function getLastMenuId() {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menu');
+    
+    if (!sheet) return 'M000';
+    
+    const data = sheet.getDataRange().getValues();
+    const rows = data.slice(1);
+    
+    let lastId = 'M000';
+    
+    for (const row of rows) {
+      if (row[0] && row[0].toString().startsWith('M')) {
+        if (row[0] > lastId) {
+          lastId = row[0];
+        }
+      }
+    }
+    
+    return lastId;
+    
+  } catch (error) {
+    return 'M000';
+  }
+}
+
+// ============================================================================
+// ENHANCED INVENTORY FUNCTIONS
+// ============================================================================
+
+/**
+ * Admin ปรับสต็อกอย่างรวดเร็ว
+ */
+function adminQuickAdjustInventory(itemId, change, adminId = 'ADMIN') {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Inventory');
+    
+    if (!sheet) {
+      throw new Error('ไม่พบชีต Inventory');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    let foundRow = -1;
+    let currentStock = 0;
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === itemId) {
+        foundRow = i + 1;
+        currentStock = Number(data[i][4]) || 0;
+        break;
+      }
+    }
+    
+    if (foundRow === -1) {
+      throw new Error(`ไม่พบสินค้า: ${itemId}`);
+    }
+    
+    const newStock = Math.max(0, currentStock + change);
+    
+    sheet.getRange(foundRow, 5).setValue(newStock);
+    sheet.getRange(foundRow, 9).setValue(new Date());
+    
+    logAction('ADMIN_QUICK_INVENTORY', `Item ${itemId}: ${currentStock} -> ${newStock} (${change})`, adminId);
+    
+    return { 
+      success: true, 
+      data: { 
+        itemId: itemId,
+        oldStock: currentStock,
+        newStock: newStock,
+        change: change
+      } 
+    };
+    
+  } catch (error) {
+    logAction('ADMIN_QUICK_INVENTORY_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// NOTIFICATION FUNCTIONS
+// ============================================================================
+
+/**
+ * ตรวจสอบออเดอร์ใหม่ (สำหรับเสียงแจ้งเตือน)
+ */
+function checkNewOrders(lastCount) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Orders');
+    
+    if (!sheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const rows = data.slice(1);
+    
+    const pendingOrders = rows.filter(row => row[6] === 'Pending').length;
+    const hasNew = pendingOrders > lastCount;
+    
+    const latestOrders = rows
+      .filter(row => row[6] === 'Pending')
+      .sort((a, b) => new Date(b[7]) - new Date(a[7]))
+      .slice(0, 3)
+      .map(row => ({
+        orderId: row[0],
+        totalPrice: Number(row[3]),
+        timestamp: row[7]
+      }));
+    
+    return {
+      success: true,
+      data: {
+        pendingCount: pendingOrders,
+        hasNew: hasNew,
+        newCount: hasNew ? pendingOrders - lastCount : 0,
+        latestOrders: latestOrders
+      }
+    };
+    
+  } catch (error) {
+    logAction('CHECK_NEW_ORDERS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
 // LINE INTEGRATION
 // ============================================================================
 
@@ -1070,7 +1489,10 @@ function handleLineWebhook(webhookData) {
 function createJSONResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 // ============================================================================
@@ -1115,9 +1537,6 @@ function testSystem() {
     Logger.log('\n📊 Testing spreadsheet connection...');
     const ss = getSpreadsheet();
     Logger.log('Spreadsheet connected:', ss.getName());
-    
-    const apiKey = PropertiesService.getScriptProperties().getProperty('API_KEY');
-    Logger.log('\n🔑 API Key for JSONP:', apiKey);
     
     Logger.log('\n' + '='.repeat(50));
     Logger.log('✅ Test Completed!');
