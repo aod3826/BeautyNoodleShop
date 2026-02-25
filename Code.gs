@@ -1,9 +1,9 @@
 /**
- * Beauty Noodle Shop - Backend System (Complete Version with New Features)
+ * Beauty Noodle Shop - Backend System (Complete Fixed Version)
  * Google Apps Script Backend for Restaurant Management
  * 
  * @author Senior Backend Developer
- * @version 6.0.0
+ * @version 7.0.0
  */
 
 // ============================================================================
@@ -405,7 +405,7 @@ function doPost(e) {
           result = adminAddInventoryItem(payload.itemData, payload.adminId);
         }
       } 
-      // NEW: Shop Status Toggle
+      // Shop Status Toggle
       else if (action === 'adminToggleShopStatus') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
@@ -413,7 +413,7 @@ function doPost(e) {
           result = adminToggleShopStatus(payload.isOpen, payload.adminId);
         }
       }
-      // NEW: Menu Management
+      // Menu Management
       else if (action === 'adminAddMenu') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
@@ -427,7 +427,7 @@ function doPost(e) {
           result = adminUpdateMenu(payload.menuData, payload.adminId);
         }
       }
-      // NEW: Quick Inventory Adjust
+      // Quick Inventory Adjust
       else if (action === 'adminQuickAdjustInventory') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
@@ -435,7 +435,7 @@ function doPost(e) {
           result = adminQuickAdjustInventory(payload.itemId, payload.change, payload.adminId);
         }
       }
-      // NEW: Check New Orders
+      // Check New Orders
       else if (action === 'checkNewOrders') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
@@ -922,7 +922,7 @@ function getStockStatus(current, min) {
 
 function adminLogin(username, password) {
   const validUsername = 'admin';
-  const validPassword = 'beautynoodle123';
+  const validPassword = '123';
   
   if (username === validUsername && password === validPassword) {
     const token = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
@@ -1483,16 +1483,13 @@ function handleLineWebhook(webhookData) {
 }
 
 // ============================================================================
-// RESPONSE HELPERS
+// RESPONSE HELPERS - แก้ไขตามที่กำหนด ห้ามใช้ setHeader()
 // ============================================================================
 
 function createJSONResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*')
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ============================================================================
