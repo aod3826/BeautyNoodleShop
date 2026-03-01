@@ -40,80 +40,42 @@ function initialSetup() {
   Logger.log('API Key: ' + apiKey);
   Logger.log('⚠️ กรุณาเปลี่ยนรหัสผ่าน admin ทันทีหลังจากติดตั้ง!');
 }
-
 /**
- * เปลี่ยนรหัสผ่าน Admin
+ * ตั้งค่า LINE Messaging API แบบปลอดภัย
+ * @param {Object} config - (Optional) ข้อมูลที่ส่งมาจากหน้า Admin
  */
-function changeAdminPassword() {
-  const properties = PropertiesService.getScriptProperties();
-  const ui = SpreadsheetApp.getUi();
-  
-  const oldPassword = ui.prompt('🔐 กรุณาใส่รหัสผ่านเดิม:').getResponseText();
-  const currentPassword = properties.getProperty('ADMIN_PASS');
-  
-  if (oldPassword !== currentPassword) {
-    ui.alert('❌ รหัสผ่านเดิมไม่ถูกต้อง');
-    return;
-  }
-  
-  const newPassword = ui.prompt('🔐 กรุณาใส่รหัสผ่านใหม่:').getResponseText();
-  const confirmPassword = ui.prompt('🔐 ยืนยันรหัสผ่านใหม่:').getResponseText();
-  
-  if (newPassword !== confirmPassword) {
-    ui.alert('❌ รหัสผ่านไม่ตรงกัน');
-    return;
-  }
-  
-  if (newPassword.length < 6) {
-    ui.alert('❌ รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
-    return;
-  }
-  
-  properties.setProperty('ADMIN_PASS', newPassword);
-  ui.alert('✅ เปลี่ยนรหัสผ่านสำเร็จ');
-}
-
-/**
- * ตั้งค่า LINE Messaging API (รันครั้งแรก)
- */
-function setupLineMessaging() {
-  const properties = PropertiesService.getScriptProperties();
-  const ui = SpreadsheetApp.getUi();
-  
-  const channelAccessToken = ui.prompt(
-    '🔑 กรุณาใส่ LINE Channel Access Token (Long-lived):'
-  ).getResponseText();
-  
-  const channelSecret = ui.prompt(
-    '🔐 กรุณาใส่ LINE Channel Secret:'
-  ).getResponseText();
-  
-  const groupId = ui.prompt(
-    '👥 กรุณาใส่ LINE Group ID หรือ User ID:'
-  ).getResponseText();
-  
-  if (!channelAccessToken || !channelSecret || !groupId) {
-    ui.alert('❌ กรุณากรอกข้อมูลให้ครบถ้วน');
-    return;
-  }
-  
-  properties.setProperty('LINE_CHANNEL_ACCESS_TOKEN', channelAccessToken);
-  properties.setProperty('LINE_CHANNEL_SECRET', channelSecret);
-  properties.setProperty('LINE_GROUP_ID', groupId);
-  
-  // ทดสอบการส่งข้อความ
+function setupLineMessaging(config) {
   try {
+    const props = PropertiesService.getScriptProperties();
+    
+    // 1. ตรวจสอบแหล่งที่มาของข้อมูล
+    // ถ้าไม่มี config ส่งมา (เช่น กดรันเองใน Editor) ให้ใช้ค่าที่เรากำหนดไว้ตรงนี้
+    const lineData = config || {
+      token: 'QURA7S8NmooH+K4Jqdn9kl7PaVQoJHaYni2MDKFLxwXPq5iGZfp9s1ejyy/Os7VlzFlfG2FwEgtVhF7hSl74nVLbkVp49aIG3uPYdDGvJlHyaWLDtoHo4l77r7iSbNO5xy95/0oykmA29B/VWQ4gYwdB04t89/1O/w1cDnyilFU=',
+      secret: '9761252456083b6fb0fd80bcec9d4da8',
+      groupId: 'U3511304d07c24cf513e4f0eb2cb5e02f'
+    };
+
+    // 2. บันทึกค่าลง Script Properties
+    if (lineData.token) props.setProperty('LINE_CHANNEL_ACCESS_TOKEN', lineData.token);
+    if (lineData.secret) props.setProperty('LINE_CHANNEL_SECRET', lineData.secret);
+    if (lineData.groupId) props.setProperty('LINE_GROUP_ID', lineData.groupId);
+
+    // 3. ทดสอบการส่งข้อความ (ใช้ Logger แทน UI Alert)
     const testResult = sendLineTestMessage();
+    
     if (testResult) {
-      ui.alert('✅ ตั้งค่า LINE Messaging API สำเร็จ และทดสอบส่งข้อความได้');
+      Logger.log('✅ LINE Setup Success: ทดสอบส่งข้อความสำเร็จ');
+      return { success: true, message: 'ตั้งค่าและเชื่อมต่อ LINE สำเร็จ' };
     } else {
-      ui.alert('⚠️ ตั้งค่าสำเร็จ แต่ทดสอบส่งข้อความล้มเหลว กรุณาตรวจสอบ Token');
+      Logger.log('⚠️ LINE Setup Warning: บันทึกค่าแล้ว แต่ส่งข้อความทดสอบไม่สำเร็จ');
+      return { success: false, message: 'บันทึกค่าแล้ว แต่เชื่อมต่อ LINE ไม่สำเร็จ' };
     }
+
   } catch (e) {
-    ui.alert('❌ ตั้งค่าสำเร็จ แต่ทดสอบส่งข้อความล้มเหลว: ' + e.message);
+    Logger.log('❌ LINE Setup Error: ' + e.toString());
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + e.message };
   }
-  
-  Logger.log('✅ LINE Messaging API setup completed.');
 }
 
 /**
@@ -2720,6 +2682,3 @@ function createBackup() {
   }
 }
 
-// ============================================================================
-// END OF FILE
-// ============================================================================
