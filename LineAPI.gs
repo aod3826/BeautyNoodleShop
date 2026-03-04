@@ -464,7 +464,7 @@ function handleLineWebhook(webhookData) {
             // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
             replyPayloadMessages.push({ 
               "type": "text", 
-              "text": "ขอบคุณที่ทักมานะคะ อ๊อดสามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
+              "text": "ข้อความตอบกลับอัตโนมัติ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
             });
             replyPayloadMessages.push({
               "type": "flex",
