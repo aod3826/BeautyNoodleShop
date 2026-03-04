@@ -430,10 +430,7 @@ function sendLineBroadcast(message, imageUrl, isUrgent = false) {
 // ============================================================================
 
 /**
- * Webhook สำหรับรับข้อความจาก LINE
- */
-/**
- * Webhook สำหรับรับข้อความจาก LINE (เวอร์ชัน Flex Message)
+ * Webhook สำหรับรับข้อความจาก LINE (เวอร์ชัน Flex Message ภาพใหญ่)
  */
 function handleLineWebhook(webhookData) {
   try {
@@ -453,26 +450,26 @@ function handleLineWebhook(webhookData) {
 
           // --- ส่วนตัดสินใจเลือกคำตอบ ---
           if (userMessage.includes('สวัสดี') || userMessage.includes('hello') || userMessage.includes('เมนู')) {
-            // ส่งเป็น Flex Message สวยๆ
+            // ส่งเป็น Flex Message ภาพใหญ่ สวยๆ
             replyPayloadMessages.push({
               "type": "flex",
               "altText": "เมนูและบริการจาก Beauty Noodle 🍜",
-              "contents": createFlexTemplate()
+              "contents": createBigImageFlexTemplate()
             });
           } else if (userMessage.includes('เวลา') || userMessage.includes('เปิด')) {
             replyPayloadMessages.push({ "type": "text", "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" });
           } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
             replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 081-234-5678 ค่ะ 📞" });
           } else {
-            // ข้อความทั่วไป
+            // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
             replyPayloadMessages.push({ 
               "type": "text", 
-              "text": "ขอบคุณที่ทักมานะคะ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
+              "text": "ขอบคุณที่ทักมานะคะ อ๊อดสามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
             });
             replyPayloadMessages.push({
               "type": "flex",
-              "altText": "เมนู แม่อ้นก๋วยเตี่ยว&ตามสั่ง",
-              "contents": createFlexTemplate()
+              "altText": "เมนู Beauty Noodle",
+              "contents": createBigImageFlexTemplate()
             });
           }
 
@@ -492,7 +489,7 @@ function handleLineWebhook(webhookData) {
           };
 
           UrlFetchApp.fetch(url, options);
-          logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
+          if (typeof logAction === 'function') logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
         }
       });
     }
@@ -506,17 +503,24 @@ function handleLineWebhook(webhookData) {
 }
 
 /**
- * ฟังก์ชันสร้างโครงสร้าง Flex Message
+ * ฟังก์ชันสร้างโครงสร้าง Flex Message แบบภาพใหญ่
  */
-function createFlexTemplate() {
+function createBigImageFlexTemplate() {
+  // แปลงลิงก์ Google Drive ให้เป็นลิงก์สำหรับดึงภาพโดยตรง (Direct Link)
+  const imageUrl = "https://lh3.googleusercontent.com/d/19LvOFaRpvhFXuLAuSRg4ic6j5wU-YiHV";
+
   return {
     "type": "bubble",
     "hero": {
       "type": "image",
-      "url": "https://images.unsplash.com/photo-1552611052-33e04de081de?q=80&w=1000&auto=format&fit=crop",
+      "url": imageUrl,
       "size": "full",
-      "aspectRatio": "20:13",
-      "aspectMode": "cover"
+      "aspectRatio": "1:1", // ปรับสัดส่วนเป็น 1:1 เพื่อให้ภาพสูงและเด่นขึ้น
+      "aspectMode": "cover",
+      "action": {
+        "type": "uri",
+        "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
+      }
     },
     "body": {
       "type": "box",
@@ -527,7 +531,7 @@ function createFlexTemplate() {
           "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
           "contents": [
             { "type": "text", "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม", "size": "sm", "color": "#666666" },
-            { "type": "text", "text": "⏰ เปิด: 08:00 - 16.00 น.", "size": "sm", "color": "#666666" }
+            { "type": "text", "text": "⏰ เปิด: 08:00 - 20:00 น.", "size": "sm", "color": "#666666" }
           ]
         }
       ]
@@ -551,7 +555,7 @@ function createFlexTemplate() {
           "action": {
             "type": "uri",
             "label": "📞 โทรสั่งเลย",
-            "uri": "tel:0653877411"
+            "uri": "tel:0812345678"
           }
         }
       ]
@@ -559,7 +563,7 @@ function createFlexTemplate() {
   };
 }
 
-// ฟังก์ชันเสริม (เผื่อในโปรเจกต์อ๊อดเรียกใช้)
+// ฟังก์ชันเสริม
 function createJSONResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
