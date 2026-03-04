@@ -507,7 +507,7 @@ function handleLineWebhook(webhookData) {
  */
 function createBigImageFlexTemplate() {
   // แปลงลิงก์ Google Drive ให้เป็นลิงก์สำหรับดึงภาพโดยตรง (Direct Link)
-  const imageUrl = "https://lh3.googleusercontent.com/d/19LvOFaRpvhFXuLAuSRg4ic6j5wU-YiHV";
+  const imageUrl = "https://lh3.googleusercontent.com/d/1rrMB8Gx1w1udAVHP6LZZRsUOsJY02mXE";
 
   return {
     "type": "bubble",
@@ -526,7 +526,7 @@ function createBigImageFlexTemplate() {
       "type": "box",
       "layout": "vertical",
       "contents": [
-        { "type": "text", "text": "Beauty Noodle", "weight": "bold", "size": "xl", "color": "#1DB446" },
+        { "type": "text", "text": "แม่อ้นก๋วยเตี๋ยว&ตามสั่ง", "weight": "bold", "size": "xl", "color": "#1DB446" },
         {
           "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
           "contents": [
@@ -555,7 +555,7 @@ function createBigImageFlexTemplate() {
           "action": {
             "type": "uri",
             "label": "📞 โทรสั่งเลย",
-            "uri": "tel:0812345678"
+            "uri": "tel:0653877411"
           }
         }
       ]
