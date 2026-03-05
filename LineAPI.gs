@@ -1,7 +1,7 @@
 /**
  * Beauty Noodle Shop - LineAPI.gs
  * LINE Messaging API: Setup, Send, Webhook, Broadcast
- * @version 8.0.0
+ * @version 8.1.0
  */
 
 // ============================================================================
@@ -27,16 +27,50 @@ function saveLineSettings(payload) {
   try {
     const properties = PropertiesService.getScriptProperties();
 
-    properties.setProperty('LINE_CHANNEL_ACCESS_TOKEN', payload.lineToken);
-    properties.setProperty('LINE_CHANNEL_SECRET', payload.lineSecret);
-    properties.setProperty('LINE_GROUP_ID', payload.lineGroupId);
+    // บันทึกเฉพาะที่มีการส่งมา
+    if (payload.lineToken) {
+      properties.setProperty('LINE_CHANNEL_ACCESS_TOKEN', payload.lineToken);
+    }
+    if (payload.lineSecret) {
+      properties.setProperty('LINE_CHANNEL_SECRET', payload.lineSecret);
+    }
+    if (payload.lineGroupId) {
+      properties.setProperty('LINE_GROUP_ID', payload.lineGroupId);
+    }
 
-    logAction('LINE_SETTINGS_SAVED', 'LINE settings updated', payload.adminId);
+    logAction('LINE_SETTINGS_SAVED', 'LINE settings updated', payload.adminId || 'ADMIN');
 
     return { success: true };
 
   } catch (error) {
     logAction('LINE_SETTINGS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ดึงข้อมูลการตั้งค่า LINE (สำหรับแสดงในหน้า Settings)
+ */
+function getLineSettingsData() {
+  try {
+    const lineConfig = getLineConfig();
+    
+    // ไม่ส่ง Token จริงกลับไป เพื่อความปลอดภัย
+    return {
+      success: true,
+      data: {
+        hasToken: !!lineConfig.channelAccessToken,
+        hasSecret: !!lineConfig.channelSecret,
+        groupId: lineConfig.groupId || '',
+        // ส่งกลับแค่ 4 ตัวแรกและ 4 ตัวสุดท้ายของ Token (ถ้ามี)
+        tokenPreview: lineConfig.channelAccessToken 
+          ? lineConfig.channelAccessToken.substring(0, 4) + '...' + lineConfig.channelAccessToken.slice(-4)
+          : '',
+        isConfigured: !!(lineConfig.channelAccessToken && lineConfig.channelSecret && lineConfig.groupId)
+      }
+    };
+  } catch (error) {
+    logAction('GET_LINE_SETTINGS_ERROR', error.message, 'SYSTEM');
     return { success: false, error: error.message };
   }
 }
@@ -151,7 +185,7 @@ function sendLineTestMessage() {
       to: lineConfig.groupId,
       messages: [{
         type: 'text',
-        text: '✅ การเชื่อมต่อ LINE Messaging API สำเร็จ!'
+        text: '✅ การเชื่อมต่อ LINE Messaging API สำเร็จ! (ทดสอบจากระบบ Admin)'
       }]
     };
 
@@ -164,7 +198,7 @@ function sendLineTestMessage() {
 }
 
 /**
- * ส่ง Flex Message ไปยัง LINE
+ * ส่ง Flex Message ไปยัง LINE (แบบสวยงาม)
  */
 function sendLineFlexMessage(orderData) {
   try {
@@ -413,6 +447,7 @@ function sendLineBroadcast(message, imageUrl, isUrgent = false) {
 
     if (responseCode === 200) {
       Logger.log('Broadcast sent successfully');
+      logAction('LINE_BROADCAST', `Broadcast sent: ${message.substring(0, 50)}...`, 'SYSTEM');
       return true;
     } else {
       Logger.log(`Broadcast failed: ${response.getContentText()}`);
@@ -436,8 +471,11 @@ function handleLineWebhook(webhookData) {
   try {
     // ดึง Config (Channel Access Token)
     const lineConfig = getLineConfig(); 
-    // หมายเหตุ: ถ้าอ๊อดไม่มีฟังก์ชัน getLineConfig ให้ใช้: 
-    // const channelAccessToken = 'ใส่Tokenของอ๊อดตรงนี้';
+    
+    if (!lineConfig.channelAccessToken) {
+      logAction('LINE_WEBHOOK_ERROR', 'LINE not configured', 'SYSTEM');
+      return createJSONResponse({ status: 'error', message: 'LINE not configured' });
+    }
 
     if (webhookData.events && Array.isArray(webhookData.events)) {
       webhookData.events.forEach(event => {
@@ -457,14 +495,30 @@ function handleLineWebhook(webhookData) {
               "contents": createBigImageFlexTemplate()
             });
           } else if (userMessage.includes('เวลา') || userMessage.includes('เปิด')) {
-            replyPayloadMessages.push({ "type": "text", "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" });
+            replyPayloadMessages.push({ 
+              "type": "text", 
+              "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" 
+            });
           } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
-            replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065377411 ค่ะ 📞" });
+            replyPayloadMessages.push({ 
+              "type": "text", 
+              "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065-387-7411 ค่ะ 📞" 
+            });
+          } else if (userMessage.includes('ขอบคุณ')) {
+            replyPayloadMessages.push({ 
+              "type": "text", 
+              "text": "ด้วยความยินดีค่ะ ขอบคุณที่ใช้บริการนะคะ 🙏" 
+            });
+          } else if (userMessage.includes('ที่อยู่') || userMessage.includes('อยู่ที่ไหน')) {
+            replyPayloadMessages.push({ 
+              "type": "text", 
+              "text": "ร้านอยู่ที่: 123 ถนนสุขุมวิท กรุงเทพฯ (ใกล้ BTS อโศก) ค่ะ 🗺️" 
+            });
           } else {
             // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
             replyPayloadMessages.push({ 
               "type": "text", 
-              "text": "ข้อความตอบกลับอัตโนมัติ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
+              "text": "สวัสดีค่ะ ร้าน Beauty Noodle ยินดีให้บริการค่ะ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
             });
             replyPayloadMessages.push({
               "type": "flex",
@@ -489,7 +543,7 @@ function handleLineWebhook(webhookData) {
           };
 
           UrlFetchApp.fetch(url, options);
-          if (typeof logAction === 'function') logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
+          logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
         }
       });
     }
@@ -497,7 +551,7 @@ function handleLineWebhook(webhookData) {
     return createJSONResponse({ status: 'ok' });
 
   } catch (error) {
-    if (typeof logAction === 'function') logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
+    logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
     return createJSONResponse({ status: 'error', message: error.message });
   }
 }
@@ -526,23 +580,50 @@ function createBigImageFlexTemplate() {
       "type": "box",
       "layout": "vertical",
       "contents": [
-        { "type": "text", "text": "แม่อ้นก๋วยเตี๋ยว&ตามสั่ง", "weight": "bold", "size": "xl", "color": "#1DB446" },
+        { 
+          "type": "text", 
+          "text": "แม่อ้นก๋วยเตี๋ยว & ตามสั่ง", 
+          "weight": "bold", 
+          "size": "xl", 
+          "color": "#d97706" 
+        },
         {
-          "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
+          "type": "box", 
+          "layout": "vertical", 
+          "margin": "lg", 
+          "spacing": "sm",
           "contents": [
-            { "type": "text", "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม", "size": "sm", "color": "#666666" },
-            { "type": "text", "text": "⏰ เปิด: 09:00 - 17:00 น.", "size": "sm", "color": "#666666" }
+            { 
+              "type": "text", 
+              "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม วัตถุดิบสดใหม่", 
+              "size": "sm", 
+              "color": "#666666" 
+            },
+            { 
+              "type": "text", 
+              "text": "⏰ เปิด: 08:00 - 20:00 น.", 
+              "size": "sm", 
+              "color": "#666666" 
+            },
+            { 
+              "type": "text", 
+              "text": "📍 123 ถนนสุขุมวิท กรุงเทพฯ", 
+              "size": "sm", 
+              "color": "#666666" 
+            }
           ]
         }
       ]
     },
     "footer": {
-      "type": "box", "layout": "vertical", "spacing": "sm",
+      "type": "box", 
+      "layout": "vertical", 
+      "spacing": "sm",
       "contents": [
         {
           "type": "button",
           "style": "primary",
-          "color": "#1DB446",
+          "color": "#d97706",
           "action": {
             "type": "uri",
             "label": "📖 ดูเมนูอาหาร",
@@ -563,7 +644,11 @@ function createBigImageFlexTemplate() {
   };
 }
 
-// ฟังก์ชันเสริม
+/**
+ * ฟังก์ชันสร้าง JSON Response
+ */
 function createJSONResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
