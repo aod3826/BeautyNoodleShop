@@ -1,7 +1,7 @@
 /**
  * Beauty Noodle Shop - Auth.gs
  * ระบบความปลอดภัย: Login, Token, API Key Verification
- * @version 8.0.0
+ * @version 8.2.0
  */
 
 // ============================================================================
@@ -45,4 +45,3 @@ function adminLogin(username, password) {
   logAction('ADMIN_LOGIN_FAILED', `Failed login attempt for: ${username}`, 'SYSTEM');
   return { success: false, error: 'Invalid credentials' };
 }
-
