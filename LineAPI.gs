@@ -276,7 +276,7 @@ function sendLineFlexMessage(orderData) {
                 action: {
                   type: 'uri',
                   label: 'ดูรายละเอียด',
-                  uri: 'https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec?action=admin'
+                  uri: 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin'
                 }
               }
             ]
@@ -316,7 +316,7 @@ function sendLineTextMessage(orderData) {
       `📋 *รายการอาหาร*\n` +
       `${itemsText}\n` +
       `─────────────────\n` +
-      `👉 ดูรายละเอียด: https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec?action=admin`;
+      `👉 ดูรายละเอียด: https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin`;
 
     const payload = {
       to: lineConfig.groupId,
@@ -459,7 +459,7 @@ function handleLineWebhook(webhookData) {
           } else if (userMessage.includes('เวลา') || userMessage.includes('เปิด')) {
             replyPayloadMessages.push({ "type": "text", "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" });
           } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
-            replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 081-234-5678 ค่ะ 📞" });
+            replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065377411 ค่ะ 📞" });
           } else {
             // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
             replyPayloadMessages.push({ 
@@ -507,7 +507,7 @@ function handleLineWebhook(webhookData) {
  */
 function createBigImageFlexTemplate() {
   // แปลงลิงก์ Google Drive ให้เป็นลิงก์สำหรับดึงภาพโดยตรง (Direct Link)
-  const imageUrl = "https://lh3.googleusercontent.com/d/1rrMB8Gx1w1udAVHP6LZZRsUOsJY02mXE";
+  const imageUrl = "https://lh3.googleusercontent.com/d/1LZCrC4uQseVP78Px_xIlFC0RfT-tfkpe";
 
   return {
     "type": "bubble",
@@ -519,7 +519,7 @@ function createBigImageFlexTemplate() {
       "aspectMode": "cover",
       "action": {
         "type": "uri",
-        "uri": "https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
+        "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
       }
     },
     "body": {
@@ -531,7 +531,7 @@ function createBigImageFlexTemplate() {
           "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
           "contents": [
             { "type": "text", "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม", "size": "sm", "color": "#666666" },
-            { "type": "text", "text": "⏰ เปิด: 08:00 - 20:00 น.", "size": "sm", "color": "#666666" }
+            { "type": "text", "text": "⏰ เปิด: 09:00 - 17:00 น.", "size": "sm", "color": "#666666" }
           ]
         }
       ]
@@ -546,7 +546,7 @@ function createBigImageFlexTemplate() {
           "action": {
             "type": "uri",
             "label": "📖 ดูเมนูอาหาร",
-            "uri": "https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec"
+            "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec"
           }
         },
         {
