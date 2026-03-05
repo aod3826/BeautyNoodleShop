@@ -52,7 +52,7 @@ function setupLineMessaging(config) {
     const lineData = config || {
       token: 'QURA7S8NmooH+K4Jqdn9kl7PaVQoJHaYni2MDKFLxwXPq5iGZfp9s1ejyy/Os7VlzFlfG2FwEgtVhF7hSl74nVLbkVp49aIG3uPYdDGvJlHyaWLDtoHo4l77r7iSbNO5xy95/0oykmA29B/VWQ4gYwdB04t89/1O/w1cDnyilFU=',
       secret: '9761252456083b6fb0fd80bcec9d4da8',
-      groupId: 'U3511304d07c24cf513e4f0eb2cb5e02f'
+      groupId: 'Cd11ca7122b5538ddb1589588ba2a7c5f'
     };
 
     if (lineData.token) props.setProperty('LINE_CHANNEL_ACCESS_TOKEN', lineData.token);
@@ -276,7 +276,7 @@ function sendLineFlexMessage(orderData) {
                 action: {
                   type: 'uri',
                   label: 'ดูรายละเอียด',
-                  uri: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=admin'
+                  uri: 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin'
                 }
               }
             ]
@@ -316,7 +316,7 @@ function sendLineTextMessage(orderData) {
       `📋 *รายการอาหาร*\n` +
       `${itemsText}\n` +
       `─────────────────\n` +
-      `👉 ดูรายละเอียด: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=admin`;
+      `👉 ดูรายละเอียด: https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin`;
 
     const payload = {
       to: lineConfig.groupId,
@@ -430,37 +430,50 @@ function sendLineBroadcast(message, imageUrl, isUrgent = false) {
 // ============================================================================
 
 /**
- * Webhook สำหรับรับข้อความจาก LINE
+ * Webhook สำหรับรับข้อความจาก LINE (เวอร์ชัน Flex Message ภาพใหญ่)
  */
 function handleLineWebhook(webhookData) {
   try {
-    const lineConfig = getLineConfig();
+    // ดึง Config (Channel Access Token)
+    const lineConfig = getLineConfig(); 
+    // หมายเหตุ: ถ้าอ๊อดไม่มีฟังก์ชัน getLineConfig ให้ใช้: 
+    // const channelAccessToken = 'ใส่Tokenของอ๊อดตรงนี้';
 
     if (webhookData.events && Array.isArray(webhookData.events)) {
       webhookData.events.forEach(event => {
         if (event.type === 'message' && event.message.type === 'text') {
           const replyToken = event.replyToken;
-          const userMessage = event.message.text;
+          const userMessage = event.message.text.toLowerCase(); // ทำเป็นตัวเล็กเพื่อให้เช็คง่ายขึ้น
           const userId = event.source.userId;
 
-          let replyMessage = '';
-          if (userMessage.includes('สวัสดี') || userMessage.includes('hello')) {
-            replyMessage = 'สวัสดีค่ะ ร้าน Beauty Noodle ยินดีต้อนรับค่ะ 🍜';
-          } else if (userMessage.includes('เมนู')) {
-            replyMessage = 'เมนูของเรามีให้เลือกมากมาย เช่น ก๋วยเตี๋ยวน้ำใส, ต้มยำ, ข้าวต่างๆ กดดูเมนูได้ที่ลิงก์นี้ https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+          let replyPayloadMessages = [];
+
+          // --- ส่วนตัดสินใจเลือกคำตอบ ---
+          if (userMessage.includes('สวัสดี') || userMessage.includes('hello') || userMessage.includes('เมนู')) {
+            // ส่งเป็น Flex Message ภาพใหญ่ สวยๆ
+            replyPayloadMessages.push({
+              "type": "flex",
+              "altText": "เมนูและบริการจาก Beauty Noodle 🍜",
+              "contents": createBigImageFlexTemplate()
+            });
           } else if (userMessage.includes('เวลา') || userMessage.includes('เปิด')) {
-            replyMessage = 'ร้านเปิดทุกวัน 08:00 - 20:00 น. ค่ะ';
+            replyPayloadMessages.push({ "type": "text", "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" });
           } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
-            replyMessage = 'เบอร์โทรศัพท์ร้าน: 081-234-5678 ค่ะ';
+            replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065377411 ค่ะ 📞" });
           } else {
-            replyMessage = 'ขอบคุณที่ติดต่อค่ะ ถ้าต้องการสอบถามเพิ่มเติม โทร 081-234-5678 หรือกดดูเมนูได้ที่เว็บไซต์ค่ะ 🙏';
+            // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
+            replyPayloadMessages.push({ 
+              "type": "text", 
+              "text": "ข้อความตอบกลับอัตโนมัติ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
+            });
+            replyPayloadMessages.push({
+              "type": "flex",
+              "altText": "เมนู Beauty Noodle",
+              "contents": createBigImageFlexTemplate()
+            });
           }
 
-          const replyPayload = {
-            replyToken: replyToken,
-            messages: [{ type: 'text', text: replyMessage }]
-          };
-
+          // --- ส่วนการส่งข้อมูลกลับ ---
           const url = 'https://api.line.me/v2/bot/message/reply';
           const options = {
             method: 'post',
@@ -468,13 +481,15 @@ function handleLineWebhook(webhookData) {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + lineConfig.channelAccessToken
             },
-            payload: JSON.stringify(replyPayload),
+            payload: JSON.stringify({
+              replyToken: replyToken,
+              messages: replyPayloadMessages
+            }),
             muteHttpExceptions: true
           };
 
           UrlFetchApp.fetch(url, options);
-
-          logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
+          if (typeof logAction === 'function') logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
         }
       });
     }
@@ -482,8 +497,73 @@ function handleLineWebhook(webhookData) {
     return createJSONResponse({ status: 'ok' });
 
   } catch (error) {
-    logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
+    if (typeof logAction === 'function') logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
     return createJSONResponse({ status: 'error', message: error.message });
   }
 }
 
+/**
+ * ฟังก์ชันสร้างโครงสร้าง Flex Message แบบภาพใหญ่
+ */
+function createBigImageFlexTemplate() {
+  // แปลงลิงก์ Google Drive ให้เป็นลิงก์สำหรับดึงภาพโดยตรง (Direct Link)
+  const imageUrl = "https://lh3.googleusercontent.com/d/1LZCrC4uQseVP78Px_xIlFC0RfT-tfkpe";
+
+  return {
+    "type": "bubble",
+    "hero": {
+      "type": "image",
+      "url": imageUrl,
+      "size": "full",
+      "aspectRatio": "1:1", // ปรับสัดส่วนเป็น 1:1 เพื่อให้ภาพสูงและเด่นขึ้น
+      "aspectMode": "cover",
+      "action": {
+        "type": "uri",
+        "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
+      }
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        { "type": "text", "text": "แม่อ้นก๋วยเตี๋ยว&ตามสั่ง", "weight": "bold", "size": "xl", "color": "#1DB446" },
+        {
+          "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
+          "contents": [
+            { "type": "text", "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม", "size": "sm", "color": "#666666" },
+            { "type": "text", "text": "⏰ เปิด: 09:00 - 17:00 น.", "size": "sm", "color": "#666666" }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box", "layout": "vertical", "spacing": "sm",
+      "contents": [
+        {
+          "type": "button",
+          "style": "primary",
+          "color": "#1DB446",
+          "action": {
+            "type": "uri",
+            "label": "📖 ดูเมนูอาหาร",
+            "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec"
+          }
+        },
+        {
+          "type": "button",
+          "style": "secondary",
+          "action": {
+            "type": "uri",
+            "label": "📞 โทรสั่งเลย",
+            "uri": "tel:0653877411"
+          }
+        }
+      ]
+    }
+  };
+}
+
+// ฟังก์ชันเสริม
+function createJSONResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
