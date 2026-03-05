@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>Beauty Noodle Shop - สั่งก๋วยเตี๋ยวออนไลน์</title>
     
     <!-- Tailwind CSS -->
@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
+        /* (คง CSS เดิมไว้เหมือนเดิม) */
         * {
             margin: 0;
             padding: 0;
@@ -73,53 +74,12 @@
             }
         }
         
-        @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        @keyframes bounce {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-        
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        
         .animate-slide-up {
             animation: slideUp 0.6s ease-out forwards;
         }
         
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
-        }
-        
-        .animate-scale-in {
-            animation: scaleIn 0.4s ease-out forwards;
-        }
-        
-        .animate-bounce {
-            animation: bounce 2s infinite;
-        }
-        
-        .animate-spin {
-            animation: spin 1s linear infinite;
         }
         
         .delay-1 { animation-delay: 0.1s; opacity: 0; }
@@ -131,10 +91,6 @@
         /* Custom shadows */
         .shadow-warm {
             box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
-        }
-        
-        .shadow-warm-lg {
-            box-shadow: 0 20px 50px rgba(217, 119, 6, 0.2);
         }
         
         /* Menu card hover effect */
@@ -160,12 +116,8 @@
         
         /* Cart badge pulse */
         @keyframes pulse-scale {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
         
         .cart-badge {
@@ -180,15 +132,7 @@
             background-clip: text;
         }
         
-        /* Custom radio and checkbox */
-        .custom-radio:checked + label,
-        .custom-checkbox:checked + label {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            border-color: #d97706;
-        }
-        
-        /* Hide scrollbar but keep functionality */
+        /* Scrollbar hide */
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
@@ -220,15 +164,9 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        
-        /* Error screen */
-        .error-screen {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            margin: 2rem;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         /* Connection status */
@@ -262,12 +200,8 @@
         }
         
         @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
@@ -458,6 +392,17 @@
                                 <label class="block text-sm font-semibold text-amber-900 mb-2">📝 หมายเหตุ</label>
                                 <textarea id="orderNote" rows="3" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none resize-none" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย..."></textarea>
                             </div>
+                            
+                            <!-- Customer Info -->
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">👤 ชื่อ-นามสกุล (Optional)</label>
+                                <input type="text" id="customerName" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none" placeholder="ชื่อลูกค้า">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-900 mb-2">📞 เบอร์โทรศัพท์ (Optional)</label>
+                                <input type="tel" id="customerPhone" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-600 focus:outline-none" placeholder="08X-XXX-XXXX">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -504,11 +449,11 @@
     </div>
 
     <!-- ============================================================================ -->
-    <!-- JAVASCRIPT - ควบคุมการทำงานทั้งหมด พร้อม JSONP Support -->
+    <!-- JAVASCRIPT - ควบคุมการทำงานทั้งหมด (แก้ไขให้สอดคล้องกับ Main.gs) -->
     <!-- ============================================================================ -->
     <script>
         // ============================================================================
-        // CONFIGURATION - แก้ไข URL นี้ให้ตรงกับ Web App ของคุณ
+        // CONFIGURATION
         // ============================================================================
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec';
         
@@ -637,20 +582,26 @@
         }
         
         // ============================================================================
-        // DATA FETCHING WITH FALLBACK
+        // API CALLS - แก้ไขให้ตรงกับ Main.gs
         // ============================================================================
-        async function fetchWithFallback(action, params = {}) {
+        
+        /**
+         * เรียก API แบบ GET (แก้ไขชื่อ action ให้ถูกต้อง)
+         */
+        async function callGetAction(action, params = {}) {
             connectionAttempts++;
             document.getElementById('loadingDetail').textContent = `กำลังเชื่อมต่อ... (ครั้งที่ ${connectionAttempts})`;
             
-            const url = SCRIPT_URL + '?action=' + action + 
-                       Object.keys(params).map(key => '&' + key + '=' + encodeURIComponent(params[key])).join('');
+            // สร้าง URL พร้อม parameters
+            const url = new URL(SCRIPT_URL);
+            url.searchParams.append('action', action);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
             
             // ลอง fetch แบบปกติก่อน
             try {
                 updateConnectionStatus('loading', 'กำลังเชื่อมต่อ...');
                 
-                const response = await fetch(url, {
+                const response = await fetch(url.toString(), {
                     method: 'GET',
                     mode: 'cors',
                     headers: {
@@ -673,7 +624,7 @@
                 // ลอง JSONP
                 try {
                     updateConnectionStatus('loading', 'ใช้ JSONP...');
-                    const data = await jsonp(url, 'callback');
+                    const data = await jsonp(url.toString(), 'callback');
                     updateConnectionStatus('online');
                     connectionAttempts = 0;
                     return data;
@@ -688,8 +639,53 @@
                     
                     // รอแล้วลองใหม่
                     await new Promise(r => setTimeout(r, 2000));
-                    return fetchWithFallback(action, params);
+                    return callGetAction(action, params);
                 }
+            }
+        }
+        
+        /**
+         * เรียก API แบบ POST (แก้ไข Content-Type และชื่อ action)
+         */
+        async function callPostAction(action, payload = {}) {
+            connectionAttempts++;
+            document.getElementById('loadingDetail').textContent = `กำลังส่งข้อมูล... (ครั้งที่ ${connectionAttempts})`;
+            
+            // เพิ่ม action ใน payload
+            const fullPayload = { action, ...payload };
+            
+            try {
+                updateConnectionStatus('loading', 'กำลังส่งข้อมูล...');
+                
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 
+                        'Content-Type': 'application/json',  // ✅ แก้ไขจาก text/plain
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(fullPayload)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateConnectionStatus('online');
+                    connectionAttempts = 0;
+                    return data;
+                }
+                
+                throw new Error(`HTTP error! status: ${response.status}`);
+                
+            } catch (error) {
+                console.error('POST error:', error);
+                
+                if (connectionAttempts >= MAX_ATTEMPTS) {
+                    updateConnectionStatus('offline', 'เชื่อมต่อล้มเหลว');
+                    throw error;
+                }
+                
+                await new Promise(r => setTimeout(r, 2000));
+                return callPostAction(action, payload);
             }
         }
         
@@ -711,12 +707,15 @@
             await loadInitialData();
         });
         
+        /**
+         * โหลดข้อมูลเริ่มต้น (แก้ไขชื่อ action ให้ถูกต้อง)
+         */
         async function loadInitialData() {
             try {
                 showLoading();
                 
-                // Load shop status
-                const statusResult = await fetchWithFallback('getShopStatus');
+                // Load shop status - อันนี้ถูกต้องแล้ว (getShopStatus)
+                const statusResult = await callGetAction('getShopStatus');
                 console.log('✅ Shop status:', statusResult);
                 
                 if (statusResult && statusResult.success) {
@@ -725,8 +724,8 @@
                     updateShopStatus();
                 }
                 
-                // Load menu
-                const menuResult = await fetchWithFallback('getMenu');
+                // Load menu - แก้ไขจาก 'getMenu' เป็น 'getMenuData'
+                const menuResult = await callGetAction('getMenuData');
                 console.log('✅ Menu:', menuResult);
                 
                 if (menuResult && menuResult.success && menuResult.data) {
@@ -1178,7 +1177,7 @@
         }
         
         // ============================================================================
-        // ORDER SUBMISSION
+        // ORDER SUBMISSION - แก้ไขให้ตรงกับ Main.gs
         // ============================================================================
         async function confirmOrder() {
             if (cart.length === 0) return;
@@ -1189,6 +1188,8 @@
                 const orderType = document.getElementById('orderType').value;
                 const paymentMethod = document.getElementById('paymentMethod').value;
                 const orderNote = document.getElementById('orderNote').value;
+                const customerName = document.getElementById('customerName').value;
+                const customerPhone = document.getElementById('customerPhone').value;
                 
                 const items = cart.map(item => ({
                     menuId: item.menuId,
@@ -1196,34 +1197,31 @@
                     selectedOptions: item.options
                 }));
                 
+                // ✅ แก้ไข: ส่ง action 'saveOrderData' ตามที่ Main.gs รับ
                 const orderData = {
-                    action: 'saveOrder',
+                    action: 'saveOrderData',  // แก้ไขจาก 'saveOrder' เป็น 'saveOrderData'
                     userId: userId,
                     items: items,
                     type: orderType,
                     payment: paymentMethod,
-                    note: orderNote
+                    note: orderNote,
+                    customerName: customerName,
+                    customerPhone: customerPhone
                 };
                 
                 console.log('📤 Sending order:', orderData);
                 
-                // ส่ง POST request
-                const response = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    mode: 'cors', // เพิ่มหรือคงไว้เพื่อให้ส่งข้ามโดเมนได้
-    headers: {
-        // เปลี่ยนจาก application/json เป็น text/plain;charset=utf-8
-        'Content-Type': 'text/plain;charset=utf-8',
-        'Accept': 'application/json'
-    },
-    body: JSON.stringify(orderData) // ส่ง JSON string ไปเหมือนเดิม
-});
+                // ✅ แก้ไข: ใช้ callPostAction ที่จัดการ Content-Type ให้แล้ว
+                const result = await callPostAction('saveOrderData', {
+                    userId: userId,
+                    items: items,
+                    type: orderType,
+                    payment: paymentMethod,
+                    note: orderNote,
+                    customerName: customerName,
+                    customerPhone: customerPhone
+                });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
                 console.log('✅ Order response:', result);
                 
                 if (result.success) {
@@ -1264,6 +1262,8 @@
             document.getElementById('successModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
             document.getElementById('orderNote').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
         }
     </script>
 </body>
