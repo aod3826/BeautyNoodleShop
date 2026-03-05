@@ -276,7 +276,7 @@ function sendLineFlexMessage(orderData) {
                 action: {
                   type: 'uri',
                   label: 'ดูรายละเอียด',
-                  uri: 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin'
+                  uri: 'https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec?action=admin'
                 }
               }
             ]
@@ -316,7 +316,7 @@ function sendLineTextMessage(orderData) {
       `📋 *รายการอาหาร*\n` +
       `${itemsText}\n` +
       `─────────────────\n` +
-      `👉 ดูรายละเอียด: https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec?action=admin`;
+      `👉 ดูรายละเอียด: https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec?action=admin`;
 
     const payload = {
       to: lineConfig.groupId,
@@ -519,7 +519,7 @@ function createBigImageFlexTemplate() {
       "aspectMode": "cover",
       "action": {
         "type": "uri",
-        "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
+        "uri": "https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
       }
     },
     "body": {
@@ -546,7 +546,7 @@ function createBigImageFlexTemplate() {
           "action": {
             "type": "uri",
             "label": "📖 ดูเมนูอาหาร",
-            "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec"
+            "uri": "https://script.google.com/macros/s/AKfycbw-g9WeXgjDfZV2yE7TfKljuaQAwSiassqu5ImDKu5QeIRrW_VPTm2MhfvJ-qU1hNgJ8w/exec"
           }
         },
         {
