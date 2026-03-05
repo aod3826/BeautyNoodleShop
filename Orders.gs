@@ -1,7 +1,7 @@
 /**
  * Beauty Noodle Shop - Orders.gs
  * จัดการออเดอร์, Dashboard Stats, ลูกค้า, Export
- * @version 8.0.0
+ * @version 8.1.0
  */
 
 // ============================================================================
@@ -78,7 +78,7 @@ function saveOrderData(orderData) {
     sheet.appendRow([
       orderId,
       orderData.userId || 'Guest',
-      JSON.stringify(processedItems),
+      JSON.stringify(processedItems, null, 2),  // แบบ readable
       totalPrice,
       orderData.type || 'dine-in',
       orderData.payment || 'cash',
@@ -271,6 +271,267 @@ function adminBulkUpdateStatus(orderIds, newStatus, adminId) {
 }
 
 // ============================================================================
+// DASHBOARD STATS
+// ============================================================================
+
+/**
+ * ดึงข้อมูลสถิติสำหรับ dashboard
+ */
+function getDashboardStatsData() {
+  try {
+    const ss = getSpreadsheet();
+    const ordersSheet = ss.getSheetByName('Orders');
+    const inventorySheet = ss.getSheetByName('Inventory');
+
+    if (!ordersSheet) throw new Error('Orders sheet not found');
+
+    const ordersData = ordersSheet.getDataRange().getValues();
+    const ordersRows = ordersData.slice(1);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const stats = {
+      totalOrders: 0,
+      totalRevenue: 0,
+      todayOrders: 0,
+      todayRevenue: 0,
+      pendingOrders: 0,
+      preparingOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0,
+      averageOrderValue: 0,
+      lowStockCount: 0
+    };
+
+    // คำนวณจากออเดอร์
+    ordersRows.forEach(row => {
+      const orderDate = new Date(row[7]);
+      const status = row[6] || 'Pending';
+      const totalPrice = Number(row[3]) || 0;
+
+      stats.totalOrders++;
+      stats.totalRevenue += totalPrice;
+
+      if (status === 'Pending') stats.pendingOrders++;
+      else if (status === 'Preparing' || status === 'Confirmed') stats.preparingOrders++;
+      else if (status === 'Completed') stats.completedOrders++;
+      else if (status === 'Cancelled') stats.cancelledOrders++;
+
+      if (orderDate >= today) {
+        stats.todayOrders++;
+        stats.todayRevenue += totalPrice;
+      }
+    });
+
+    stats.averageOrderValue = stats.totalOrders > 0
+      ? Math.round(stats.totalRevenue / stats.totalOrders)
+      : 0;
+
+    // คำนวณสินค้าใกล้หมด
+    if (inventorySheet) {
+      const invData = inventorySheet.getDataRange().getValues();
+      const invRows = invData.slice(1);
+      
+      stats.lowStockCount = invRows.filter(row => {
+        const current = Number(row[4]) || 0;
+        const min = Number(row[5]) || 0;
+        return current <= min && current > 0;
+      }).length;
+    }
+
+    return { success: true, data: stats };
+
+  } catch (error) {
+    logAction('DASHBOARD_STATS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ดึงข้อมูลเมนูขายดี
+ */
+function getBestSellingItems() {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Orders');
+
+    if (!sheet) return { success: true, data: { all: [] } };
+
+    const data = sheet.getDataRange().getValues();
+    const rows = data.slice(1);
+    const itemCounts = {};
+    const itemRevenue = {};
+
+    rows.forEach(row => {
+      // ป้องกัน JSON.parse error
+      let items = [];
+      try {
+        items = typeof row[2] === 'string' ? JSON.parse(row[2] || '[]') : (row[2] || []);
+      } catch (e) {
+        items = [];
+      }
+      
+      items.forEach(item => {
+        const key = item.menuId + '|' + (item.menuName || 'ไม่ระบุ');
+        itemCounts[key] = (itemCounts[key] || 0) + (item.quantity || 1);
+        itemRevenue[key] = (itemRevenue[key] || 0) + (item.totalPrice || 0);
+      });
+    });
+
+    const bestSelling = Object.entries(itemCounts)
+      .map(([key, quantity]) => {
+        const [id, name] = key.split('|');
+        return { id, name, quantity, revenue: itemRevenue[key] || 0 };
+      })
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 20);
+
+    return { success: true, data: { all: bestSelling } };
+
+  } catch (error) {
+    logAction('BEST_SELLING_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ตรวจสอบออเดอร์ใหม่ (สำหรับเสียงแจ้งเตือน)
+ */
+function checkNewOrders(lastCount) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Orders');
+
+    if (!sheet) return { success: false, error: 'Orders sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const rows = data.slice(1);
+    const pendingOrders = rows.filter(row => row[6] === 'Pending').length;
+    const hasNew = pendingOrders > lastCount;
+
+    const latestOrders = rows
+      .filter(row => row[6] === 'Pending')
+      .sort((a, b) => new Date(b[7]) - new Date(a[7]))
+      .slice(0, 3)
+      .map(row => ({
+        orderId: row[0],
+        totalPrice: Number(row[3]),
+        timestamp: row[7]
+      }));
+
+    return {
+      success: true,
+      data: {
+        pendingCount: pendingOrders,
+        hasNew: hasNew,
+        newCount: hasNew ? pendingOrders - lastCount : 0,
+        latestOrders: latestOrders
+      }
+    };
+
+  } catch (error) {
+    logAction('CHECK_NEW_ORDERS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// ADMIN CONFIG MANAGEMENT (ฟังก์ชันใหม่)
+// ============================================================================
+
+/**
+ * Admin อัปเดตชื่อร้าน
+ */
+function adminUpdateShopName(shopName, adminId) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Config');
+
+    if (!sheet) throw new Error('ไม่พบชีต Config');
+
+    const data = sheet.getDataRange().getValues();
+    let foundRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === 'shopName') {
+        foundRow = i + 1;
+        break;
+      }
+    }
+
+    if (foundRow === -1) {
+      sheet.appendRow(['shopName', shopName]);
+    } else {
+      sheet.getRange(foundRow, 2).setValue(shopName);
+    }
+
+    logAction('ADMIN_UPDATE_SHOP_NAME', `Shop name changed to: ${shopName}`, adminId);
+    return { success: true };
+
+  } catch (error) {
+    logAction('ADMIN_UPDATE_SHOP_NAME_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin อัปเดตค่า Config ทั่วไป
+ */
+function adminUpdateConfig(key, value, adminId) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Config');
+
+    if (!sheet) throw new Error('ไม่พบชีต Config');
+
+    const data = sheet.getDataRange().getValues();
+    let foundRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+
+    if (foundRow === -1) {
+      sheet.appendRow([key, value]);
+    } else {
+      sheet.getRange(foundRow, 2).setValue(value);
+    }
+
+    logAction('ADMIN_UPDATE_CONFIG', `Config ${key} changed`, adminId);
+    return { success: true };
+
+  } catch (error) {
+    logAction('ADMIN_UPDATE_CONFIG_ERROR', error.message, adminId);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ดึงข้อมูล Config ทั้งหมด (สำหรับ Admin)
+ */
+function getConfigData() {
+  try {
+    const config = getConfig();
+    
+    // ซ่อนข้อมูลที่สำคัญ
+    delete config.adminPassword;
+    delete config.apiKey;
+    
+    return {
+      success: true,
+      data: config
+    };
+  } catch (error) {
+    logAction('GET_CONFIG_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
 // ADMIN INVENTORY MANAGEMENT
 // ============================================================================
 
@@ -324,8 +585,8 @@ function adminAddInventoryItem(itemData, adminId) {
     sheet.appendRow([
       newId,
       itemData.name,
-      itemData.category,
-      itemData.unit,
+      itemData.category || 'ทั่วไป',
+      itemData.unit || 'ชิ้น',
       itemData.currentStock || 0,
       itemData.minStock || 5,
       itemData.maxStock || 50,
@@ -335,7 +596,7 @@ function adminAddInventoryItem(itemData, adminId) {
       itemData.location || ''
     ]);
 
-    logAction('ADMIN_ADD_INVENTORY', `Added ${itemData.name}`, adminId);
+    logAction('ADMIN_ADD_INVENTORY', `Added ${itemData.name} (${newId})`, adminId);
 
     return { success: true, data: { itemId: newId } };
 
@@ -604,149 +865,6 @@ function adminGetAllMenus() {
 }
 
 // ============================================================================
-// DASHBOARD STATS
-// ============================================================================
-
-/**
- * ดึงข้อมูลสถิติสำหรับ dashboard
- */
-function getDashboardStatsData() {
-  try {
-    const ss = getSpreadsheet();
-    const ordersSheet = ss.getSheetByName('Orders');
-
-    if (!ordersSheet) throw new Error('Orders sheet not found');
-
-    const data = ordersSheet.getDataRange().getValues();
-    const rows = data.slice(1);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const stats = {
-      totalOrders: 0,
-      totalRevenue: 0,
-      todayOrders: 0,
-      todayRevenue: 0,
-      pendingOrders: 0,
-      preparingOrders: 0,
-      completedOrders: 0,
-      cancelledOrders: 0,
-      averageOrderValue: 0
-    };
-
-    rows.forEach(row => {
-      const orderDate = new Date(row[7]);
-      const status = row[6] || 'Pending';
-      const totalPrice = Number(row[3]) || 0;
-
-      stats.totalOrders++;
-      stats.totalRevenue += totalPrice;
-
-      if (status === 'Pending') stats.pendingOrders++;
-      else if (status === 'Preparing' || status === 'Confirmed') stats.preparingOrders++;
-      else if (status === 'Completed') stats.completedOrders++;
-      else if (status === 'Cancelled') stats.cancelledOrders++;
-
-      if (orderDate >= today) {
-        stats.todayOrders++;
-        stats.todayRevenue += totalPrice;
-      }
-    });
-
-    stats.averageOrderValue = stats.totalOrders > 0
-      ? Math.round(stats.totalRevenue / stats.totalOrders)
-      : 0;
-
-    return { success: true, data: stats };
-
-  } catch (error) {
-    throw error;
-  }
-}
-
-/**
- * ดึงข้อมูลเมนูขายดี
- */
-function getBestSellingItems() {
-  try {
-    const ss = getSpreadsheet();
-    const sheet = ss.getSheetByName('Orders');
-
-    if (!sheet) return { success: true, data: { all: [] } };
-
-    const data = sheet.getDataRange().getValues();
-    const rows = data.slice(1);
-    const itemCounts = {};
-    const itemRevenue = {};
-
-    rows.forEach(row => {
-      const items = JSON.parse(row[2] || '[]');
-      items.forEach(item => {
-        const key = item.menuId + '|' + item.menuName;
-        itemCounts[key] = (itemCounts[key] || 0) + item.quantity;
-        itemRevenue[key] = (itemRevenue[key] || 0) + item.totalPrice;
-      });
-    });
-
-    const bestSelling = Object.entries(itemCounts)
-      .map(([key, quantity]) => {
-        const [id, name] = key.split('|');
-        return { id, name, quantity, revenue: itemRevenue[key] || 0 };
-      })
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 20);
-
-    return { success: true, data: { all: bestSelling } };
-
-  } catch (error) {
-    logAction('BEST_SELLING_ERROR', error.message, 'SYSTEM');
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ตรวจสอบออเดอร์ใหม่ (สำหรับเสียงแจ้งเตือน)
- */
-function checkNewOrders(lastCount) {
-  try {
-    const ss = getSpreadsheet();
-    const sheet = ss.getSheetByName('Orders');
-
-    if (!sheet) return { success: false, error: 'Orders sheet not found' };
-
-    const data = sheet.getDataRange().getValues();
-    const rows = data.slice(1);
-    const pendingOrders = rows.filter(row => row[6] === 'Pending').length;
-    const hasNew = pendingOrders > lastCount;
-
-    const latestOrders = rows
-      .filter(row => row[6] === 'Pending')
-      .sort((a, b) => new Date(b[7]) - new Date(a[7]))
-      .slice(0, 3)
-      .map(row => ({
-        orderId: row[0],
-        totalPrice: Number(row[3]),
-        timestamp: row[7]
-      }));
-
-    return {
-      success: true,
-      data: {
-        pendingCount: pendingOrders,
-        hasNew: hasNew,
-        newCount: hasNew ? pendingOrders - lastCount : 0,
-        latestOrders: latestOrders
-      }
-    };
-
-  } catch (error) {
-    logAction('CHECK_NEW_ORDERS_ERROR', error.message, 'SYSTEM');
-    return { success: false, error: error.message };
-  }
-}
-
-// ============================================================================
 // CUSTOMER STATS
 // ============================================================================
 
@@ -760,7 +878,7 @@ function getCustomerStats() {
     const customersSheet = ss.getSheetByName('Customers');
 
     if (!ordersSheet) {
-      return { success: true, data: { total: 0, new: 0, returning: 0 } };
+      return { success: true, data: { total: 0, new: 0, returning: 0, customers: [] } };
     }
 
     const orders = ordersSheet.getDataRange().getValues().slice(1);
@@ -794,12 +912,19 @@ function getCustomerStats() {
     const newCustomers = customers.filter(c => c.firstOrder >= thirtyDaysAgo).length;
     const returningCustomers = customers.filter(c => c.orderCount > 1).length;
 
+    // อัปเดตชีต Customers
     if (customersSheet) {
+      // ล้างข้อมูลเก่า
+      if (customersSheet.getLastRow() > 1) {
+        customersSheet.getRange(2, 1, customersSheet.getLastRow() - 1, 9).clear();
+      }
+      
       const customerRows = customers.map(c => [
         c.userId, '', '', '',
         c.totalSpent, c.orderCount,
         c.lastOrder, c.firstOrder, ''
       ]);
+      
       if (customerRows.length > 0) {
         customersSheet.getRange(2, 1, customerRows.length, 9).setValues(customerRows);
       }
@@ -813,7 +938,8 @@ function getCustomerStats() {
         returning: returningCustomers,
         averageSpent: customers.length > 0
           ? Math.round(customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length)
-          : 0
+          : 0,
+        customers: customers.slice(0, 50) // ส่งกลับแค่ 50 รายการล่าสุด
       }
     };
 
@@ -888,5 +1014,23 @@ function exportOrdersAsCSV(params) {
   } catch (error) {
     logAction('EXPORT_ERROR', error.message, 'SYSTEM');
     return createJSONResponse({ success: false, error: error.message });
+  }
+}
+
+// ============================================================================
+// UPDATE INVENTORY FROM ORDER
+// ============================================================================
+
+/**
+ * อัปเดตสต็อกจากออเดอร์
+ */
+function updateInventoryFromOrder(items) {
+  try {
+    logAction('INVENTORY_UPDATE', 'Order inventory update triggered', 'SYSTEM');
+    // TODO: implement actual inventory deduction logic
+    return true;
+  } catch (error) {
+    logAction('INVENTORY_UPDATE_ERROR', error.message, 'SYSTEM');
+    return false;
   }
 }
