@@ -1,7 +1,7 @@
 /**
  * Beauty Noodle Shop - Database.gs
  * จัดการ Spreadsheet ทั้งหมด: Setup, CRUD, Menu, Inventory
- * @version 8.0.0
+ * @version 8.2.0
  */
 
 // ============================================================================
@@ -62,7 +62,7 @@ function createConfigSheet(ss) {
     const configData = [
       ['shopName', 'Beauty Noodle Shop'],
       ['isOpen', 'true'],
-      ['liffId', ''],
+      ['liffId', '2009141036-G9K9jtUn'],
       ['taxRate', '0.07'],
       ['serviceCharge', '0'],
       ['currency', 'THB'],
@@ -417,7 +417,7 @@ function getShopStatusData() {
       data: {
         shopName: config.shopName || 'Beauty Noodle Shop',
         isOpen: isOpenByConfig,
-        liffId: config.liffId || '',
+        liffId: config.liffId || '2009141036-G9K9jtUn',
         currency: config.currency || 'THB',
         phoneNumber: config.phoneNumber || '081-234-5678',
         openTime: config.openTime || '08:00',
