@@ -1,7 +1,7 @@
 /**
  * Beauty Noodle Shop - Main.gs
  * ระบบหลัก: ตัวแปร Global, Entry Points, และ Setup
- * @version 8.0.0
+ * @version 8.1.0
  */
 
 // ============================================================================
@@ -69,61 +69,76 @@ function doGet(e) {
     let result;
 
     try {
-      if (action === 'getMenu') {
+      // ========== PUBLIC ACTIONS (ไม่ต้องใช้ Token) ==========
+      if (action === 'getMenuData') {
         result = getMenuData();
       } else if (action === 'getShopStatus') {
         result = getShopStatusData();
-      } else if (action === 'getOrder') {
+      } else if (action === 'getOrderData') {
         result = getOrderData(e.parameter.orderId);
-      } else if (action === 'getUserOrders') {
+      } else if (action === 'getUserOrdersData') {
         result = getUserOrdersData(e.parameter.userId);
-      } else if (action === 'getAllOrders') {
-        if (!verifyApiKey(e.parameter.key) && !verifyAdminToken(e.parameter.token)) {
-          result = { success: false, error: 'Unauthorized' };
-        } else {
-          result = getAllOrdersData(e.parameter);
-        }
-      } else if (action === 'getDashboardStats') {
-        if (!verifyApiKey(e.parameter.key) && !verifyAdminToken(e.parameter.token)) {
+      
+      // ========== ADMIN ACTIONS (ต้องใช้ Token) ==========
+      } else if (action === 'getDashboardStatsData') {
+        if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = getDashboardStatsData();
         }
-      } else if (action === 'getInventoryStatus') {
-        if (!verifyApiKey(e.parameter.key) && !verifyAdminToken(e.parameter.token)) {
+      } else if (action === 'getAllOrdersData') {
+        if (!verifyAdminToken(e.parameter.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = getAllOrdersData(e.parameter);
+        }
+      } else if (action === 'getInventoryStatusData') {
+        if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = getInventoryStatusData();
         }
-      } else if (action === 'adminGetAllMenus') {
+      } else if (action === 'adminGetAllMenusData') {
         if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminGetAllMenus();
         }
-      } else if (action === 'checkNewOrders') {
+      } else if (action === 'checkNewOrdersData') {
         if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = checkNewOrders(parseInt(e.parameter.lastCount) || 0);
         }
-      } else if (action === 'getBestSellingItems') {
-        if (!verifyApiKey(e.parameter.key) && !verifyAdminToken(e.parameter.token)) {
+      } else if (action === 'getBestSellingItemsData') {
+        if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = getBestSellingItems();
         }
-      } else if (action === 'exportOrders') {
+      } else if (action === 'exportOrdersData') {
         if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           return exportOrdersAsCSV(e.parameter);
         }
-      } else if (action === 'getCustomerStats') {
+      } else if (action === 'getCustomerStatsData') {
         if (!verifyAdminToken(e.parameter.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = getCustomerStats();
+        }
+      } else if (action === 'getLineSettingsData') {
+        if (!verifyAdminToken(e.parameter.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = getLineSettingsData();
+        }
+      } else if (action === 'getConfigData') {
+        if (!verifyAdminToken(e.parameter.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = getConfigData();
         }
       } else {
         result = { success: false, error: 'Invalid action' };
@@ -177,87 +192,111 @@ function doPost(e) {
     let result;
 
     try {
-      if (action === 'saveOrder') {
+      // ========== PUBLIC ACTIONS (ไม่ต้องใช้ Token) ==========
+      if (action === 'saveOrderData') {
         result = saveOrderData(payload);
-      } else if (action === 'updateCustomer') {
+      } else if (action === 'updateCustomerData') {
         result = updateCustomerData(payload);
       } else if (action === 'adminLogin') {
         result = adminLogin(payload.username, payload.password);
-      } else if (action === 'adminUpdateOrderStatus') {
+      
+      // ========== ADMIN ACTIONS (ต้องใช้ Token) ==========
+      } else if (action === 'adminUpdateOrderStatusData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminUpdateOrderStatus(payload.orderId, payload.status, payload.adminId);
         }
-      } else if (action === 'adminDeleteOrder') {
+      } else if (action === 'adminDeleteOrderData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminDeleteOrder(payload.orderId, payload.adminId);
         }
-      } else if (action === 'adminUpdateInventory') {
+      } else if (action === 'adminUpdateInventoryData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminUpdateInventory(payload.itemId, payload.quantity, payload.adminId);
         }
-      } else if (action === 'adminAddInventoryItem') {
+      } else if (action === 'adminAddInventoryItemData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminAddInventoryItem(payload.itemData, payload.adminId);
         }
-      } else if (action === 'adminToggleShopStatus') {
+      } else if (action === 'adminToggleShopStatusData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminToggleShopStatus(payload.isOpen, payload.adminId);
         }
-      } else if (action === 'adminAddMenu') {
+      } else if (action === 'adminAddMenuData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminAddMenu(payload.menuData, payload.adminId);
         }
-      } else if (action === 'adminUpdateMenu') {
+      } else if (action === 'adminUpdateMenuData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminUpdateMenu(payload.menuData, payload.adminId);
         }
-      } else if (action === 'adminQuickAdjustInventory') {
+      } else if (action === 'adminQuickAdjustInventoryData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminQuickAdjustInventory(payload.itemId, payload.change, payload.adminId);
         }
-      } else if (action === 'adminBulkUpdateStatus') {
+      } else if (action === 'adminBulkUpdateStatusData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = adminBulkUpdateStatus(payload.orderIds, payload.status, payload.adminId);
         }
-      } else if (action === 'saveLineSettings') {
+      } else if (action === 'saveLineSettingsData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = saveLineSettings(payload);
         }
-      } else if (action === 'testLine') {
+      } else if (action === 'testLineData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = { success: sendLineTestMessage() };
         }
-      } else if (action === 'lineBroadcast') {
+      } else if (action === 'lineBroadcastData') {
         if (!verifyAdminToken(payload.token)) {
           result = { success: false, error: 'Unauthorized' };
         } else {
           result = { success: sendLineBroadcast(payload.message, payload.imageUrl, payload.urgent) };
         }
-      } else if (action === 'logError') {
+      } else if (action === 'adminUpdateShopNameData') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminUpdateShopName(payload.shopName, payload.adminId);
+        }
+      } else if (action === 'adminUpdateConfigData') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = adminUpdateConfig(payload.key, payload.value, payload.adminId);
+        }
+      } else if (action === 'logErrorData') {
         logAction('CLIENT_ERROR', JSON.stringify(payload.error), payload.userId || 'anonymous');
         result = { success: true };
+      
+      // ==========新增: CLEAR CACHE ACTION ==========
+      } else if (action === 'clearAllCache') {
+        if (!verifyAdminToken(payload.token)) {
+          result = { success: false, error: 'Unauthorized' };
+        } else {
+          result = clearAllCache();  // เรียกจาก Utils.gs
+        }
+      
       } else {
         result = { success: false, error: 'Invalid action' };
       }
@@ -310,7 +349,7 @@ function initialSetup() {
  * ฟังก์ชันสำหรับ Deploy (เรียกเมื่อมีการอัปเดต)
  */
 function onDeploy() {
-  Logger.log('🚀 Deploying Beauty Noodle Shop System v8.0.0');
+  Logger.log('🚀 Deploying Beauty Noodle Shop System v8.1.0');
   Logger.log('Timestamp: ' + new Date().toISOString());
 
   try {
@@ -335,7 +374,7 @@ function onDeploy() {
  */
 function testSystem() {
   Logger.log('='.repeat(50));
-  Logger.log('🔍 Testing Beauty Noodle Shop System v8.0.0');
+  Logger.log('🔍 Testing Beauty Noodle Shop System v8.1.0');
   Logger.log('='.repeat(50));
 
   try {
@@ -343,7 +382,7 @@ function testSystem() {
     const config = getConfig();
     Logger.log('Config loaded:', config);
 
-    Logger.log('\n🍜 Testing getMenu...');
+    Logger.log('\n🍜 Testing getMenuData...');
     const menu = getMenuItemsWithDetails();
     Logger.log(`Found ${menu.length} menu items`);
 
@@ -367,6 +406,14 @@ function testSystem() {
     Logger.log('\n🏆 Testing best selling...');
     const bestSelling = getBestSellingItems();
     Logger.log('Best selling:', bestSelling);
+
+    Logger.log('\n🔌 Testing LINE settings...');
+    const lineSettings = getLineSettingsData();
+    Logger.log('LINE settings:', lineSettings);
+
+    Logger.log('\n🧹 Testing clear cache...');
+    const cacheResult = clearAllCache();
+    Logger.log('Clear cache:', cacheResult);
 
     Logger.log('\n' + '='.repeat(50));
     Logger.log('✅ Test Completed!');
