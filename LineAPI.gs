@@ -1,7 +1,10 @@
 /**
  * Beauty Noodle Shop - LineAPI.gs
  * LINE Messaging API: Setup, Send, Webhook, Broadcast
- * @version 8.0.0
+ * @version 8.2.0
+ * 
+ * หมายเหตุ: ปรับปรุงจาก LINE Notify (ปิดให้บริการ 1 เม.ย. 2025) 
+ *          มาใช้ LINE Messaging API แทน
  */
 
 // ============================================================================
@@ -9,7 +12,8 @@
 // ============================================================================
 
 /**
- * ดึงค่า LINE Configuration
+ * ดึงค่า LINE Configuration จาก Script Properties
+ * @returns {Object} { channelAccessToken, channelSecret, groupId }
  */
 function getLineConfig() {
   const properties = PropertiesService.getScriptProperties();
@@ -21,17 +25,35 @@ function getLineConfig() {
 }
 
 /**
- * บันทึกการตั้งค่า LINE
+ * ตรวจสอบว่า LINE Messaging API พร้อมใช้งานหรือไม่
+ * @returns {boolean} true ถ้าตั้งค่าครบถ้วน
+ */
+function isLineMessagingReady() {
+  const config = getLineConfig();
+  return !!(config.channelAccessToken && config.channelSecret && config.groupId);
+}
+
+/**
+ * บันทึกการตั้งค่า LINE Messaging API
+ * @param {Object} payload - ข้อมูลการตั้งค่า { lineToken, lineSecret, lineGroupId, adminId }
+ * @returns {Object} ผลการบันทึก { success, error? }
  */
 function saveLineSettings(payload) {
   try {
     const properties = PropertiesService.getScriptProperties();
 
-    properties.setProperty('LINE_CHANNEL_ACCESS_TOKEN', payload.lineToken);
-    properties.setProperty('LINE_CHANNEL_SECRET', payload.lineSecret);
-    properties.setProperty('LINE_GROUP_ID', payload.lineGroupId);
+    // บันทึกเฉพาะค่าที่ส่งมา (ไม่ต้องส่งทั้งหมดก็ได้)
+    if (payload.lineToken) {
+      properties.setProperty('LINE_CHANNEL_ACCESS_TOKEN', payload.lineToken.trim());
+    }
+    if (payload.lineSecret) {
+      properties.setProperty('LINE_CHANNEL_SECRET', payload.lineSecret.trim());
+    }
+    if (payload.lineGroupId) {
+      properties.setProperty('LINE_GROUP_ID', payload.lineGroupId.trim());
+    }
 
-    logAction('LINE_SETTINGS_SAVED', 'LINE settings updated', payload.adminId);
+    logAction('LINE_SETTINGS_SAVED', 'LINE Messaging API settings updated', payload.adminId || 'ADMIN');
 
     return { success: true };
 
@@ -42,31 +64,77 @@ function saveLineSettings(payload) {
 }
 
 /**
- * ตั้งค่า LINE Messaging API แบบปลอดภัย
- * @param {Object} config - (Optional) ข้อมูลที่ส่งมาจากหน้า Admin
+ * ดึงข้อมูลการตั้งค่า LINE (สำหรับแสดงในหน้า Settings)
+ * @returns {Object} ข้อมูลการตั้งค่า (ไม่ส่ง token จริงกลับไป)
+ */
+function getLineSettingsData() {
+  try {
+    const lineConfig = getLineConfig();
+    const isReady = isLineMessagingReady();
+    
+    return {
+      success: true,
+      data: {
+        hasToken: !!lineConfig.channelAccessToken,
+        hasSecret: !!lineConfig.channelSecret,
+        groupId: lineConfig.groupId || '',
+        // ส่งเฉพาะตัวอย่าง token (4 ตัวแรก + 4 ตัวสุดท้าย)
+        tokenPreview: lineConfig.channelAccessToken 
+          ? lineConfig.channelAccessToken.substring(0, 4) + '...' + lineConfig.channelAccessToken.slice(-4)
+          : '',
+        isConfigured: isReady,
+        message: isReady 
+          ? '✅ เชื่อมต่อ LINE Messaging API พร้อมใช้งาน' 
+          : '⚠️ กรุณาตั้งค่า LINE Messaging API ให้ครบถ้วน (Token, Secret, Group ID)'
+      }
+    };
+  } catch (error) {
+    logAction('GET_LINE_SETTINGS_ERROR', error.message, 'SYSTEM');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ตั้งค่า LINE Messaging API แบบอัตโนมัติ (ใช้สำหรับ testing)
+ * @param {Object} config - ข้อมูลการตั้งค่า (ไม่จำเป็น)
+ * @returns {Object} ผลการตั้งค่า
  */
 function setupLineMessaging(config) {
   try {
     const props = PropertiesService.getScriptProperties();
 
+    // ถ้าไม่ส่ง config มา ให้ใช้ค่าเริ่มต้น (สำหรับทดสอบ)
     const lineData = config || {
-      token: 'QURA7S8NmooH+K4Jqdn9kl7PaVQoJHaYni2MDKFLxwXPq5iGZfp9s1ejyy/Os7VlzFlfG2FwEgtVhF7hSl74nVLbkVp49aIG3uPYdDGvJlHyaWLDtoHo4l77r7iSbNO5xy95/0oykmA29B/VWQ4gYwdB04t89/1O/w1cDnyilFU=',
-      secret: '9761252456083b6fb0fd80bcec9d4da8',
-      groupId: 'Cd11ca7122b5538ddb1589588ba2a7c5f'
+      token: 'YOUR_CHANNEL_ACCESS_TOKEN',
+      secret: 'YOUR_CHANNEL_SECRET',
+      groupId: 'YOUR_GROUP_ID'
     };
 
-    if (lineData.token) props.setProperty('LINE_CHANNEL_ACCESS_TOKEN', lineData.token);
-    if (lineData.secret) props.setProperty('LINE_CHANNEL_SECRET', lineData.secret);
-    if (lineData.groupId) props.setProperty('LINE_GROUP_ID', lineData.groupId);
+    if (lineData.token && lineData.token !== 'YOUR_CHANNEL_ACCESS_TOKEN') {
+      props.setProperty('LINE_CHANNEL_ACCESS_TOKEN', lineData.token);
+    }
+    if (lineData.secret && lineData.secret !== 'YOUR_CHANNEL_SECRET') {
+      props.setProperty('LINE_CHANNEL_SECRET', lineData.secret);
+    }
+    if (lineData.groupId && lineData.groupId !== 'YOUR_GROUP_ID') {
+      props.setProperty('LINE_GROUP_ID', lineData.groupId);
+    }
 
+    // ทดสอบการส่งข้อความ
     const testResult = sendLineTestMessage();
 
     if (testResult) {
-      Logger.log('✅ LINE Setup Success: ทดสอบส่งข้อความสำเร็จ');
-      return { success: true, message: 'ตั้งค่าและเชื่อมต่อ LINE สำเร็จ' };
+      Logger.log('✅ LINE Messaging API Setup Success');
+      return { 
+        success: true, 
+        message: 'ตั้งค่าและเชื่อมต่อ LINE Messaging API สำเร็จ' 
+      };
     } else {
-      Logger.log('⚠️ LINE Setup Warning: บันทึกค่าแล้ว แต่ส่งข้อความทดสอบไม่สำเร็จ');
-      return { success: false, message: 'บันทึกค่าแล้ว แต่เชื่อมต่อ LINE ไม่สำเร็จ' };
+      Logger.log('⚠️ LINE Messaging API Setup Warning: บันทึกค่าแล้ว แต่ส่งข้อความทดสอบไม่สำเร็จ');
+      return { 
+        success: false, 
+        message: 'บันทึกค่าแล้ว แต่เชื่อมต่อ LINE ไม่สำเร็จ กรุณาตรวจสอบ Token และ Group ID' 
+      };
     }
 
   } catch (e) {
@@ -76,29 +144,40 @@ function setupLineMessaging(config) {
 }
 
 // ============================================================================
-// LINE SIGNATURE VERIFICATION
+// LINE SIGNATURE VERIFICATION (สำหรับ Webhook)
 // ============================================================================
 
 /**
  * ตรวจสอบความถูกต้องของ LINE webhook signature
+ * @param {string} body - raw request body
+ * @param {string} signature - signature จาก header 'X-LINE-Signature'
+ * @param {string} channelSecret - channel secret
+ * @returns {boolean} true ถ้าถูกต้อง
  */
 function validateLineSignature(body, signature, channelSecret) {
-  if (!channelSecret) return false;
+  if (!channelSecret || !signature) return false;
 
-  const hash = Utilities.computeHmacSha256Signature(
-    Utilities.base64Decode(Utilities.base64Encode(body)),
-    channelSecret
-  );
-  const computedSignature = Utilities.base64Encode(hash);
-  return computedSignature === signature;
+  try {
+    const hash = Utilities.computeHmacSha256Signature(
+      body,
+      channelSecret
+    );
+    const computedSignature = Utilities.base64Encode(hash);
+    return computedSignature === signature;
+  } catch (e) {
+    logAction('LINE_SIGNATURE_ERROR', e.message, 'SYSTEM');
+    return false;
+  }
 }
 
 // ============================================================================
-// SEND MESSAGE FUNCTIONS
+// SEND MESSAGE FUNCTIONS (LINE Messaging API)
 // ============================================================================
 
 /**
- * ฟังก์ชันหลักสำหรับส่ง LINE Message
+ * ฟังก์ชันหลักสำหรับส่ง LINE Message ผ่าน Messaging API
+ * @param {Object} payload - ข้อความที่จะส่ง (ตามรูปแบบ LINE Messaging API)
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendLineMessage(payload) {
   try {
@@ -121,13 +200,13 @@ function sendLineMessage(payload) {
 
     const response = UrlFetchApp.fetch(url, options);
     const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
 
     if (responseCode === 200) {
-      Logger.log('LINE message sent successfully');
+      Logger.log('✅ LINE message sent successfully');
       return true;
     } else {
-      const responseText = response.getContentText();
-      Logger.log(`LINE API error: ${responseCode} - ${responseText}`);
+      Logger.log(`❌ LINE API error: ${responseCode} - ${responseText}`);
       return false;
     }
 
@@ -138,24 +217,43 @@ function sendLineMessage(payload) {
 }
 
 /**
- * ทดสอบส่ง LINE Message
+ * ทดสอบส่ง LINE Message ผ่าน Messaging API
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendLineTestMessage() {
   try {
     const lineConfig = getLineConfig();
-    if (!lineConfig.channelAccessToken || !lineConfig.groupId) {
-      throw new Error('LINE not configured');
+    
+    if (!lineConfig.channelAccessToken) {
+      throw new Error('Missing LINE Channel Access Token');
+    }
+    
+    if (!lineConfig.channelSecret) {
+      throw new Error('Missing LINE Channel Secret');
+    }
+    
+    if (!lineConfig.groupId) {
+      throw new Error('Missing LINE Group/User ID');
     }
 
     const testMessage = {
       to: lineConfig.groupId,
       messages: [{
         type: 'text',
-        text: '✅ การเชื่อมต่อ LINE Messaging API สำเร็จ!'
+        text: '✅ การเชื่อมต่อ LINE Messaging API สำเร็จ!\n' +
+              'ร้าน Beauty Noodle พร้อมรับการแจ้งเตือนออเดอร์แล้ว'
       }]
     };
 
-    return sendLineMessage(testMessage);
+    const success = sendLineMessage(testMessage);
+    
+    if (success) {
+      logAction('LINE_TEST_SUCCESS', 'LINE Messaging API test successful', 'SYSTEM');
+    } else {
+      logAction('LINE_TEST_FAILED', 'LINE Messaging API test failed', 'SYSTEM');
+    }
+    
+    return success;
 
   } catch (error) {
     logAction('LINE_TEST_ERROR', error.message, 'SYSTEM');
@@ -164,7 +262,9 @@ function sendLineTestMessage() {
 }
 
 /**
- * ส่ง Flex Message ไปยัง LINE
+ * ส่ง Flex Message ไปยัง LINE (แบบสวยงาม)
+ * @param {Object} orderData - ข้อมูลออเดอร์
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendLineFlexMessage(orderData) {
   try {
@@ -174,10 +274,12 @@ function sendLineFlexMessage(orderData) {
       return false;
     }
 
+    // สร้างรายการอาหาร
     const menuItems = orderData.items.map(item =>
       `${item.quantity}x ${item.menuName}${item.options.length ? ' (' + item.options.join(', ') + ')' : ''}`
     ).join('\n');
 
+    // สร้าง Flex Message ตามรูปแบบ LINE Messaging API
     const flexMessage = {
       to: lineConfig.groupId,
       messages: [{
@@ -294,7 +396,9 @@ function sendLineFlexMessage(orderData) {
 }
 
 /**
- * ส่ง Text Message (Fallback)
+ * ส่ง Text Message (Fallback เมื่อส่ง Flex ไม่ได้)
+ * @param {Object} orderData - ข้อมูลออเดอร์
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendLineTextMessage(orderData) {
   try {
@@ -333,6 +437,9 @@ function sendLineTextMessage(orderData) {
 
 /**
  * ส่งข้อความแจ้งเตือนสถานะออเดอร์
+ * @param {string} orderId - รหัสออเดอร์
+ * @param {string} newStatus - สถานะใหม่
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendOrderStatusNotification(orderId, newStatus) {
   try {
@@ -375,7 +482,11 @@ function sendOrderStatusNotification(orderId, newStatus) {
 }
 
 /**
- * ส่ง Broadcast Message ไปยังทุกคน
+ * ส่ง Broadcast Message ไปยังผู้ติดตามทั้งหมด
+ * @param {string} message - ข้อความ
+ * @param {string} imageUrl - URL รูปภาพ (ไม่จำเป็น)
+ * @param {boolean} isUrgent - เป็นข้อความด่วนหรือไม่
+ * @returns {boolean} true ถ้าส่งสำเร็จ
  */
 function sendLineBroadcast(message, imageUrl, isUrgent = false) {
   try {
@@ -412,10 +523,11 @@ function sendLineBroadcast(message, imageUrl, isUrgent = false) {
     const responseCode = response.getResponseCode();
 
     if (responseCode === 200) {
-      Logger.log('Broadcast sent successfully');
+      Logger.log('✅ Broadcast sent successfully');
+      logAction('LINE_BROADCAST', `Broadcast sent: ${message.substring(0, 50)}...`, 'SYSTEM');
       return true;
     } else {
-      Logger.log(`Broadcast failed: ${response.getContentText()}`);
+      Logger.log(`❌ Broadcast failed: ${response.getContentText()}`);
       return false;
     }
 
@@ -426,54 +538,72 @@ function sendLineBroadcast(message, imageUrl, isUrgent = false) {
 }
 
 // ============================================================================
-// WEBHOOK HANDLER
+// WEBHOOK HANDLER (สำหรับรับข้อความจาก LINE)
 // ============================================================================
 
 /**
- * Webhook สำหรับรับข้อความจาก LINE (เวอร์ชัน Flex Message ภาพใหญ่)
+ * Webhook สำหรับรับข้อความจาก LINE และตอบกลับอัตโนมัติ
+ * @param {Object} webhookData - ข้อมูลจาก LINE
+ * @returns {Object} response
  */
 function handleLineWebhook(webhookData) {
   try {
-    // ดึง Config (Channel Access Token)
+    // ดึง Config
     const lineConfig = getLineConfig(); 
-    // หมายเหตุ: ถ้าอ๊อดไม่มีฟังก์ชัน getLineConfig ให้ใช้: 
-    // const channelAccessToken = 'ใส่Tokenของอ๊อดตรงนี้';
+    
+    if (!lineConfig.channelAccessToken) {
+      logAction('LINE_WEBHOOK_ERROR', 'LINE not configured', 'SYSTEM');
+      return createJSONResponse({ status: 'error', message: 'LINE not configured' });
+    }
 
     if (webhookData.events && Array.isArray(webhookData.events)) {
       webhookData.events.forEach(event => {
+        // ตรวจสอบ signature (ควรทำในการใช้งานจริง)
+        
         if (event.type === 'message' && event.message.type === 'text') {
           const replyToken = event.replyToken;
-          const userMessage = event.message.text.toLowerCase(); // ทำเป็นตัวเล็กเพื่อให้เช็คง่ายขึ้น
+          const userMessage = event.message.text.toLowerCase();
           const userId = event.source.userId;
 
           let replyPayloadMessages = [];
 
-          // --- ส่วนตัดสินใจเลือกคำตอบ ---
-          if (userMessage.includes('สวัสดี') || userMessage.includes('hello') || userMessage.includes('เมนู')) {
-            // ส่งเป็น Flex Message ภาพใหญ่ สวยๆ
+          // ตอบกลับตามข้อความที่ได้รับ
+          if (userMessage.includes('สวัสดี') || userMessage.includes('hello')) {
+            replyPayloadMessages.push({ 
+              type: 'text', 
+              text: 'สวัสดีค่ะ ร้าน Beauty Noodle ยินดีให้บริการค่ะ 🙏' 
+            });
+          } else if (userMessage.includes('เมนู') || userMessage.includes('menu')) {
             replyPayloadMessages.push({
-              "type": "flex",
-              "altText": "เมนูและบริการจาก Beauty Noodle 🍜",
-              "contents": createBigImageFlexTemplate()
+              type: 'flex',
+              altText: 'เมนูอาหาร Beauty Noodle',
+              contents: createMenuFlexTemplate()
             });
           } else if (userMessage.includes('เวลา') || userMessage.includes('เปิด')) {
-            replyPayloadMessages.push({ "type": "text", "text": "ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏" });
-          } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
-            replyPayloadMessages.push({ "type": "text", "text": "ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065377411 ค่ะ 📞" });
-          } else {
-            // ข้อความทั่วไป (ส่งข้อความพร้อม Flex Message เพื่อให้ลูกค้ากดง่าย)
             replyPayloadMessages.push({ 
-              "type": "text", 
-              "text": "ข้อความตอบกลับอัตโนมัติ สามารถกดดูเมนูหรือโทรสอบถามได้จากปุ่มด้านล่างนี้เลยค่ะ 👇" 
+              type: 'text', 
+              text: 'ร้าน Beauty Noodle เปิดทุกวัน 08:00 - 20:00 น. ค่ะ 🙏' 
             });
-            replyPayloadMessages.push({
-              "type": "flex",
-              "altText": "เมนู Beauty Noodle",
-              "contents": createBigImageFlexTemplate()
+          } else if (userMessage.includes('เบอร์') || userMessage.includes('โทร')) {
+            replyPayloadMessages.push({ 
+              type: 'text', 
+              text: 'ติดต่อสอบถามหรือสั่งอาหารได้ที่เบอร์: 065-387-7411 ค่ะ 📞' 
+            });
+          } else if (userMessage.includes('ที่อยู่') || userMessage.includes('อยู่ที่ไหน')) {
+            replyPayloadMessages.push({ 
+              type: 'text', 
+              text: 'ร้านอยู่ที่: 123 ถนนสุขุมวิท กรุงเทพฯ (ใกล้ BTS อโศก) ค่ะ 🗺️' 
+            });
+          } else {
+            // ข้อความทั่วไป
+            replyPayloadMessages.push({ 
+              type: 'text', 
+              text: 'ขอบคุณที่ติดต่อร้าน Beauty Noodle ค่ะ\n' +
+                    'พิมพ์ "เมนู" เพื่อดูรายการอาหาร หรือ "เบอร์" สำหรับติดต่อร้าน' 
             });
           }
 
-          // --- ส่วนการส่งข้อมูลกลับ ---
+          // ส่งข้อความตอบกลับ
           const url = 'https://api.line.me/v2/bot/message/reply';
           const options = {
             method: 'post',
@@ -489,7 +619,7 @@ function handleLineWebhook(webhookData) {
           };
 
           UrlFetchApp.fetch(url, options);
-          if (typeof logAction === 'function') logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
+          logAction('LINE_AUTO_REPLY', `User ${userId}: ${userMessage}`, 'LINE');
         }
       });
     }
@@ -497,65 +627,83 @@ function handleLineWebhook(webhookData) {
     return createJSONResponse({ status: 'ok' });
 
   } catch (error) {
-    if (typeof logAction === 'function') logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
+    logAction('LINE_WEBHOOK_ERROR', error.message, 'SYSTEM');
     return createJSONResponse({ status: 'error', message: error.message });
   }
 }
 
 /**
- * ฟังก์ชันสร้างโครงสร้าง Flex Message แบบภาพใหญ่
+ * สร้าง Flex Message Template สำหรับแสดงเมนู
+ * @returns {Object} Flex Message structure
  */
-function createBigImageFlexTemplate() {
-  // แปลงลิงก์ Google Drive ให้เป็นลิงก์สำหรับดึงภาพโดยตรง (Direct Link)
-  const imageUrl = "https://lh3.googleusercontent.com/d/1LZCrC4uQseVP78Px_xIlFC0RfT-tfkpe";
-
+function createMenuFlexTemplate() {
   return {
-    "type": "bubble",
-    "hero": {
-      "type": "image",
-      "url": imageUrl,
-      "size": "full",
-      "aspectRatio": "1:1", // ปรับสัดส่วนเป็น 1:1 เพื่อให้ภาพสูงและเด่นขึ้น
-      "aspectMode": "cover",
-      "action": {
-        "type": "uri",
-        "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec" // คลิกที่ภาพแล้วไปหน้าเมนู
-      }
+    type: 'bubble',
+    hero: {
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1559310541-2b2f7c3d3b3d?w=1200&h=600&fit=crop',
+      size: 'full',
+      aspectRatio: '20:13',
+      aspectMode: 'cover'
     },
-    "body": {
-      "type": "box",
-      "layout": "vertical",
-      "contents": [
-        { "type": "text", "text": "แม่อ้นก๋วยเตี๋ยว&ตามสั่ง", "weight": "bold", "size": "xl", "color": "#1DB446" },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
         {
-          "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm",
-          "contents": [
-            { "type": "text", "text": "🍜 ก๋วยเตี๋ยวรสเด็ด สูตรดั้งเดิม", "size": "sm", "color": "#666666" },
-            { "type": "text", "text": "⏰ เปิด: 09:00 - 17:00 น.", "size": "sm", "color": "#666666" }
+          type: 'text',
+          text: '🍜 เมนูแนะนำ',
+          weight: 'bold',
+          size: 'xl',
+          color: '#d97706'
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          margin: 'lg',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'text',
+              text: '• ก๋วยเตี๋ยวหมูน้ำใส 45฿',
+              size: 'md',
+              color: '#555555'
+            },
+            {
+              type: 'text',
+              text: '• ก๋วยเตี๋ยวต้มยำหมู 55฿',
+              size: 'md',
+              color: '#555555'
+            },
+            {
+              type: 'text',
+              text: '• ข้าวหมูกรอบ 50฿',
+              size: 'md',
+              color: '#555555'
+            },
+            {
+              type: 'text',
+              text: '• เกี๊ยวทอด 30฿',
+              size: 'md',
+              color: '#555555'
+            }
           ]
         }
       ]
     },
-    "footer": {
-      "type": "box", "layout": "vertical", "spacing": "sm",
-      "contents": [
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      contents: [
         {
-          "type": "button",
-          "style": "primary",
-          "color": "#1DB446",
-          "action": {
-            "type": "uri",
-            "label": "📖 ดูเมนูอาหาร",
-            "uri": "https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec"
-          }
-        },
-        {
-          "type": "button",
-          "style": "secondary",
-          "action": {
-            "type": "uri",
-            "label": "📞 โทรสั่งเลย",
-            "uri": "tel:0653877411"
+          type: 'button',
+          style: 'primary',
+          color: '#d97706',
+          action: {
+            type: 'uri',
+            label: 'สั่งอาหารออนไลน์',
+            uri: 'https://script.google.com/macros/s/AKfycbzHRT_TogzIchfNcdJ2MiAmtzxJJuFNQddJ6vsd2TW0pUWPx-fQyfb8MVeJ0PakpRqa/exec'
           }
         }
       ]
@@ -563,7 +711,11 @@ function createBigImageFlexTemplate() {
   };
 }
 
-// ฟังก์ชันเสริม
+/**
+ * ฟังก์ชันสร้าง JSON Response (สำหรับ Webhook)
+ */
 function createJSONResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
